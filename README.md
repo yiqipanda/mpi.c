@@ -43,3 +43,4 @@ make run
 ```
 
 The demo writes detailed logs to `logs/mpi_sim.log` when DEBUG mode is enabled.
+
