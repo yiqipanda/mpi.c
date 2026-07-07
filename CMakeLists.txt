@@ -24,7 +24,10 @@ find_package(Threads REQUIRED)
 #REQUIRED means configuration fails if threading support is not found.
 #This is typically used because your code or dependencies likely use std::thread or pthreads.
 
-add_library(mpi_sim STATIC src/mpi_sim.cpp)
+add_library(mpi_sim STATIC
+    src/mpi_sim.cpp
+    src/trace.cpp
+)
 #Creates a library target named mpi_sim
 #STATIC means it builds as a static library, not a shared library.
 #src/mpi_sim.cpp is the source file used to build that library.

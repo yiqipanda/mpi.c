@@ -1,4 +1,5 @@
 #include "mpi_sim.h"
+#include "trace.h"
 
 // These headers support the runtime's error messages, threads, formatting, allocation, and filesystem checks.
 #include <errno.h>
@@ -208,9 +209,16 @@ mpi_sim_runtime_t *mpi_sim_runtime_create(const mpi_sim_config_t *config) {
         return NULL;
     }
 
-    g_runtime = runtime;                 // Publish the runtime globally.
-    log_message(runtime, "[runtime] created world_size=%d debug=%d", runtime->world_size, runtime->debug_enabled); // Record creation.
-    return runtime;                      // Success.
+    g_runtime = runtime;
+
+    log_message(runtime,
+                "[runtime] created world_size=%d debug=%d",
+                runtime->world_size,
+                runtime->debug_enabled);
+    
+    trace_init("trace.json");
+    
+    return runtime;
 }
 
 // Destroys the runtime and all resources it owns.
@@ -259,6 +267,7 @@ void mpi_sim_runtime_destroy(mpi_sim_runtime_t *runtime) {
     if (g_runtime == runtime) {          // Clear global pointer if it refers to this runtime.
         g_runtime = NULL;
     }
+    trace_close();
 
     free(runtime);                       // Finally free the runtime object itself.
 }
@@ -270,6 +279,13 @@ static void *thread_entry(void *arg) {
         log_message(ctx->runtime, "[rank %d] init failed: %s", ctx->rank, mpi_sim_last_error()); // Report failure.
         return NULL;                                          // Stop this thread.
     }
+    trace_event(
+        "THREAD_START",
+        "Runtime",
+        "i",
+        ctx->rank,
+        0
+    );
 
     log_message(ctx->runtime, "[rank %d] started", ctx->rank); // Note start of user code.
     ctx->entry(ctx->user_data);                                // Call the user's function.
