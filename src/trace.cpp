@@ -6,23 +6,23 @@
 // std::mutex and std::lock_guard protect shared trace state across threads.
 #include <mutex>
 
-// Current trace file; null means tracing is off or not initialized yet.
+// File-local globals: static here means "private to this source file".
+// nullptr is the C++ null pointer value, like None in Python.
 static FILE *g_trace = nullptr;
-// One lock protects open/close/write so the JSON file stays valid across threads.
 static std::mutex g_mutex;
-// Tracks whether the next event needs a comma before it.
 static bool g_first = true;
 
-// Stores the start time used as the zero point for relative timestamps.
+// auto lets the compiler infer the exact clock-time type for us.
 static auto g_start = std::chrono::steady_clock::now();
 
 // Return the elapsed time since trace_init() in microseconds.
 static long long timestamp_us()
 {
-    // Pull chrono names into this function so the code stays short below.
+    // Bring chrono names into this function so we can write microseconds
+    // instead of std::chrono::microseconds every time.
     using namespace std::chrono;
 
-    // Chrome trace wants a relative timestamp, not an absolute wall clock time.
+    // Example: 1.5 ms becomes 1500 us.
     return duration_cast<microseconds>(
         steady_clock::now() - g_start
     ).count();
@@ -34,22 +34,21 @@ void trace_init(const char *filename)
     // RAII lock: it locks now and unlocks automatically when the function exits.
     std::lock_guard<std::mutex> lock(g_mutex);
 
-    // "w" creates the file, or wipes the old one if it already exists.
+    // "w" creates or truncates the file.
     g_trace = fopen(filename, "w");
 
     if (!g_trace)
         return;
 
-    // Chrome trace format is JSON, so the file starts with an array bracket.
+    // Chrome trace format starts with an array.
     fprintf(g_trace, "[\n");
 
-    // Push the header to disk right away.
     fflush(g_trace);
 
-    // First event in the array should not have a comma before it.
+    // The next event should be written without a leading comma.
     g_first = true;
-
-    // Start timestamps from now so every run begins near 0.
+    
+    // Reset the time origin so timestamps start at 0 for this run.
     g_start = std::chrono::steady_clock::now();
 }
 
@@ -62,13 +61,11 @@ void trace_close()
     if (!g_trace)
         return;
 
-    // Close the JSON array so the file is valid trace JSON.
+    // Finish the JSON array.
     fprintf(g_trace, "\n]\n");
 
-    // Flush and release the file handle.
     fclose(g_trace);
 
-    // Later trace_event() calls will see null and do nothing.
     g_trace = nullptr;
 }
 
@@ -80,21 +77,20 @@ void trace_event(
     int pid,
     int tid)
 {
-    // Keep event writes serialized so multiple threads do not interleave output.
+    // Keep event writes serialized so the JSON stays valid.
     std::lock_guard<std::mutex> lock(g_mutex);
 
-    // If trace_init() was never called, there is nowhere safe to write.
+    // If trace_init() was never called, ignore the event.
     if (!g_trace)
         return;
 
-    // JSON array items need commas, but not before the first one.
+    // JSON objects in an array need commas between them.
     if (!g_first)
         fprintf(g_trace, ",\n");
 
-    // The first record has now been written.
     g_first = false;
 
-    // Write one Chrome trace event object.
+    // Each call writes one Chrome trace event record.
     fprintf(
         g_trace,
         "{"
@@ -112,6 +108,5 @@ void trace_event(
         pid,
         tid);
 
-    // Make the event visible on disk immediately.
     fflush(g_trace);
 }
