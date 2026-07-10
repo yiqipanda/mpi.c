@@ -1,6 +1,11 @@
 [
-{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":84,"pid":0,"tid":0},
-{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":181,"pid":2,"tid":0},
-{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":270,"pid":3,"tid":0},
-{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":301,"pid":1,"tid":0}
+{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":396,"pid":97864,"tid":0},
+{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":566,"pid":97864,"tid":0},
+{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":900,"pid":97865,"tid":1},
+{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":1047,"pid":97865,"tid":1},
+{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":1243,"pid":97866,"tid":2},
+{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":1508,"pid":97866,"tid":2},
+{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":151664,"pid":97864,"tid":0},
+{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":152112,"pid":97865,"tid":1},
+{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":152132,"pid":97866,"tid":2}
 ]
