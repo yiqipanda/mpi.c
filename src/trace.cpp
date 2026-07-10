@@ -3,6 +3,10 @@
 
 // std::chrono gives us a simple way to measure elapsed time.
 #include <chrono>
+// flock lets us serialize writes across forked processes too.
+#include <sys/file.h>
+// fileno gives us the underlying file descriptor for the trace file.
+#include <unistd.h>
 // std::mutex and std::lock_guard protect shared trace state across threads.
 #include <mutex>
 
@@ -10,7 +14,6 @@
 // nullptr is the C++ null pointer value, like None in Python.
 static FILE *g_trace = nullptr;
 static std::mutex g_mutex;
-static bool g_first = true;
 
 // auto lets the compiler infer the exact clock-time type for us.
 static auto g_start = std::chrono::steady_clock::now();
@@ -40,13 +43,13 @@ void trace_init(const char *filename)
     if (!g_trace)
         return;
 
+    // Disable stdio buffering so each trace event is written immediately.
+    setvbuf(g_trace, nullptr, _IONBF, 0);
+
     // Chrome trace format starts with an array.
     fprintf(g_trace, "[\n");
 
     fflush(g_trace);
-
-    // The next event should be written without a leading comma.
-    g_first = true;
     
     // Reset the time origin so timestamps start at 0 for this run.
     g_start = std::chrono::steady_clock::now();
@@ -84,11 +87,15 @@ void trace_event(
     if (!g_trace)
         return;
 
-    // JSON objects in an array need commas between them.
-    if (!g_first)
-        fprintf(g_trace, ",\n");
+    const int fd = fileno(g_trace);
+    if (fd >= 0)
+        flock(fd, LOCK_EX);
 
-    g_first = false;
+    // JSON objects in an array need commas between them.
+    fseek(g_trace, 0, SEEK_END);
+    const long pos = ftell(g_trace);
+    if (pos > 2)
+        fprintf(g_trace, ",\n");
 
     // Each call writes one Chrome trace event record.
     fprintf(
@@ -109,4 +116,7 @@ void trace_event(
         tid);
 
     fflush(g_trace);
+
+    if (fd >= 0)
+        flock(fd, LOCK_UN);
 }

@@ -47,6 +47,25 @@ target_compile_definitions(mpi_sim PUBLIC $<$<BOOL:${DEBUG}>:MPI_SIM_DEBUG=1>)
 #f DEBUG is ON, code compiled for mpi_sim and anything that links to it will see MPI_SIM_DEBUG=1.
 #That usually lets the C++ code enable extra logging or debug behavior with #ifdef or #if
 
+add_library(mpi_sim_pid STATIC
+    src/mpi_sim_pid.cpp
+    src/trace.cpp
+)
+#Creates a library target named mpi_sim_pid for the PID backend.
+#This keeps the process-based path isolated from the thread-based API.
+
+target_include_directories(mpi_sim_pid PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+#Exposes the shared headers to anyone linking the PID backend.
+
+target_link_libraries(mpi_sim_pid PUBLIC Threads::Threads)
+#The PID backend still uses threading primitives in its trace/log helpers.
+
+target_compile_definitions(mpi_sim_pid PUBLIC $<$<BOOL:${DEBUG}>:MPI_SIM_DEBUG=1>)
+#Matches the debug flag behavior of the pthread backend.
+
+install(TARGETS mpi_sim_pid ARCHIVE DESTINATION lib)
+#Installs the PID backend static library for downstream consumers.
+
 add_executable(mpi_sim_demo main.cpp)
 #Creates an executable target named mpi_sim_demo.
 #built from main.cpp
