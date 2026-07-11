@@ -16,3 +16,4 @@
 - Restrict messaging between parent and child so they can clearly communicate what they need.
 - Improve tracing or logging.
 - Consider using a library for tracing or logging.
+- Add mutexes to log files so that we exactly know which process appends to it when.

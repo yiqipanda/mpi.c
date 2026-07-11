@@ -212,7 +212,7 @@ static void child_process_main(mpi_sim_pid_runtime_t *runtime, int launch_slot, 
     if (entry) { // Only call the callback if the caller supplied one.
         entry(user_data); // Run the user-supplied worker function.
     } // End block.
-
+    
     mpi_sim_pid_finalize(); // Clear worker-local state after the callback returns.
     log_message(runtime, "[worker %d pid=%d] finished", launch_slot, (int)getpid()); // Log that this worker finished.
     trace_event("PID_WORKER_END", "Process", "i", (int)getpid(), launch_slot); // Record a trace event for worker shutdown.
@@ -237,7 +237,7 @@ mpi_sim_pid_runtime_t *mpi_sim_pid_runtime_create(const mpi_sim_pid_config_t *co
         set_last_error("out of memory creating runtime"); // Explain why the allocation failed.
         return NULL; // Report failure to the caller.
     } // End block.
-
+    
     // Copy the configuration into runtime-owned storage so it remains valid after return.
     runtime->world_size = config->world_size; // Store the configured worker count.
     runtime->debug_enabled = config->debug_enabled; // Store the debug flag.
@@ -278,7 +278,7 @@ static int reap_children_blocking(mpi_sim_pid_runtime_t *runtime) // Function de
  { // Begin block.
     while (runtime->reaped_children < runtime->launched_children) { // Keep waiting until every launched child has been collected.
         int raw_status = 0; // Storage for the waitpid status word.
-        pid_t pid = waitpid(-1, &raw_status, 0); // Wait for any child to exit or stop.
+        pid_t pid = waitpid(-1, &raw_status, 0); // Wait for any child to exit or stop. 
         if (pid < 0) { // Handle waitpid failure.
             if (errno == EINTR) { // The wait was interrupted by a signal.
                 continue; // Retry the wait.
