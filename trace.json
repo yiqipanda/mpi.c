@@ -1,11 +1,168 @@
-[
-{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":396,"pid":97864,"tid":0},
-{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":566,"pid":97864,"tid":0},
-{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":900,"pid":97865,"tid":1},
-{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":1047,"pid":97865,"tid":1},
-{"name":"PID_WORKER_LAUNCH","cat":"Process","ph":"i","ts":1243,"pid":97866,"tid":2},
-{"name":"PID_WORKER_START","cat":"Process","ph":"i","ts":1508,"pid":97866,"tid":2},
-{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":151664,"pid":97864,"tid":0},
-{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":152112,"pid":97865,"tid":1},
-{"name":"PID_WORKER_END","cat":"Process","ph":"i","ts":152132,"pid":97866,"tid":2}
-]
+{
+  "entries": [
+    {
+      "timestamp": "2026-07-17T07:09:03.112279+00:00",
+      "event": "program",
+      "message": "main orchestration started",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-07-17T07:09:03.112542+00:00",
+      "event": "program",
+      "message": "main run started",
+      "details": {
+        "worker_count": 4,
+        "task": "task.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:03.112577+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:03.114670+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "task3.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:03.116134+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "task": "task.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:03.117759+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": null
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:04.123378+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "task": "task.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:04.123461+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:04.123517+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:05.124390+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:06.129605+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:07.134858+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:08.140145+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:09.141062+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:10.146336+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:11.151861+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "task3.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T07:09:11.151971+00:00",
+      "event": "program",
+      "message": "main orchestration finished",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-07-17T07:09:11.151994+00:00",
+      "event": "program",
+      "message": "main run finished",
+      "details": {
+        "return_code": 0
+      }
+    }
+  ]
+}

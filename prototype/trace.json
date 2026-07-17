@@ -1,0 +1,132 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-07-17T06:48:43.425600+00:00",
+      "event": "program",
+      "message": "main orchestration started",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.425806+00:00",
+      "event": "program",
+      "message": "main run started",
+      "details": {
+        "worker_count": 4,
+        "task": "task.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.425828+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.427539+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "task3.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.429000+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "task": "task.py"
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.430483+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": null
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.443143+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": null
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.455795+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": null
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.468778+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "task3.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.468868+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.468918+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.481649+00:00",
+      "event": "worker",
+      "message": "task finished",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "task": "task.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.481711+00:00",
+      "event": "program",
+      "message": "main orchestration finished",
+      "details": {}
+    },
+    {
+      "timestamp": "2026-07-17T06:48:43.481720+00:00",
+      "event": "program",
+      "message": "main run finished",
+      "details": {
+        "return_code": 0
+      }
+    }
+  ]
+}

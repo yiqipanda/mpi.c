@@ -13,6 +13,9 @@ CMakeUserPresets.json
 build-make/
 build-ninja/
 logs/*.log
+.pyc
+__pycache__
+
 
 # CLion
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

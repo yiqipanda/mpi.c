@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mpi-c-prototype"
+version = "0.1.0"
+description = "Python subprocess prototype for task division and worker coordination"
+requires-python = ">=3.10"
+
