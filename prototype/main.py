@@ -32,6 +32,7 @@ class Main:
             "parent_pid": None,
             "child_pids": [],
             "return_code": None,
+            "return_value": None,
             "message": "",
             "started_at": None,
             "finished_at": None,
@@ -45,7 +46,7 @@ class Main:
             program_assigned=program,
             args=[
                 "-c",
-                "print('demo-task')",
+                "print(10)",
             ],
             name="demo-task",
             fragment_name="taskA",
@@ -77,10 +78,11 @@ class Main:
         self.status["task_state"] = "aborted"
         self.status["program_state"] = "finished"
         self.status["return_code"] = 1
+        self.status["return_value"] = None
         self.status["message"] = "task aborted"
         self.status["finished_at"] = self.trace.record("program", "task aborted")["timestamp"]
         if task is not None:
-            task.mark_finished(1, task.stdout, task.stderr, task.result)
+            task.abort()
         for worker in self.workers:
             worker.terminate()
 
@@ -99,7 +101,7 @@ class Main:
         return self._task_tree_finished(self.task)
 
     def _task_tree_finished(self, task: Task) -> bool:
-        return task.completion_status in {"completed", "failed", "aborted"} and all(
+        return task.task_done and all(
             self._task_tree_finished(child) for child in task.task_children
         )
 
@@ -141,6 +143,7 @@ class Main:
         self.status["task_state"] = "completed" if finished and return_code == 0 else root_status
         self.status["program_state"] = "finished" if finished else ("running" if self.started else "idle")
         self.status["return_code"] = return_code if finished else None
+        self.status["return_value"] = self.task.return_value
         if finished and self.status["finished_at"] is None:
             self.status["message"] = "main orchestration finished"
             self.status["finished_at"] = self.trace.record("program", "main orchestration finished")["timestamp"]
@@ -155,6 +158,7 @@ class Main:
             "worker_tree": self.workers[0].snapshot(),
             "worker_count": self.worker_count,
             "return_code": return_code,
+            "return_value": self.task.return_value,
             "finished": finished,
             "status": dict(self.status),
             "trace": self.trace.to_dict(),
@@ -231,6 +235,7 @@ def _driver_view(report: dict[str, Any]) -> list[dict[str, Any]]:
         task = worker.get("task")
         rows.append(
             {
+                "task_val": None if task is None else task.get("return_value"),
                 "task": None if task is None else task.get("name"),
                 "worker": f"{worker['role']}-{worker['index']}",
                 "pid": worker.get("pid"),

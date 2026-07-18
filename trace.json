@@ -1,13 +1,13 @@
 {
   "entries": [
     {
-      "timestamp": "2026-07-17T07:09:03.112279+00:00",
+      "timestamp": "2026-07-18T12:55:35.589415+00:00",
       "event": "program",
       "message": "main orchestration started",
       "details": {}
     },
     {
-      "timestamp": "2026-07-17T07:09:03.112542+00:00",
+      "timestamp": "2026-07-18T12:55:35.589630+00:00",
       "event": "program",
       "message": "main run started",
       "details": {
@@ -16,7 +16,7 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:03.112577+00:00",
+      "timestamp": "2026-07-18T12:55:35.589654+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -26,7 +26,7 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:03.114670+00:00",
+      "timestamp": "2026-07-18T12:55:35.591604+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -36,7 +36,7 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:03.116134+00:00",
+      "timestamp": "2026-07-18T12:55:35.593235+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -46,7 +46,7 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:03.117759+00:00",
+      "timestamp": "2026-07-18T12:55:35.594961+00:00",
       "event": "poll",
       "message": "main poll",
       "details": {
@@ -55,9 +55,9 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:04.123378+00:00",
+      "timestamp": "2026-07-18T12:55:36.597600+00:00",
       "event": "worker",
-      "message": "task finished",
+      "message": "task subprocess finished",
       "details": {
         "role": "parent",
         "index": 0,
@@ -66,83 +66,9 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:04.123461+00:00",
+      "timestamp": "2026-07-18T12:55:36.597690+00:00",
       "event": "worker",
-      "message": "task finished",
-      "details": {
-        "role": "child",
-        "index": 2,
-        "task": "task4.py",
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:04.123517+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:05.124390+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:06.129605+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:07.134858+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:08.140145+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:09.141062+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:10.146336+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-17T07:09:11.151861+00:00",
-      "event": "worker",
-      "message": "task finished",
+      "message": "task subprocess finished",
       "details": {
         "role": "child",
         "index": 1,
@@ -151,13 +77,81 @@
       }
     },
     {
-      "timestamp": "2026-07-17T07:09:11.151971+00:00",
+      "timestamp": "2026-07-18T12:55:36.597740+00:00",
+      "event": "worker",
+      "message": "task subprocess finished",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597752+00:00",
+      "event": "worker",
+      "message": "task finalized",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "task4.py",
+        "return_value": 4
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597782+00:00",
+      "event": "worker",
+      "message": "captured child result",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "child_index": 0,
+        "child_task": "task4.py",
+        "value": 4
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597789+00:00",
+      "event": "worker",
+      "message": "task finalized",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "task3.py",
+        "return_value": 7
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597809+00:00",
+      "event": "worker",
+      "message": "captured child result",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "child_index": 0,
+        "child_task": "task3.py",
+        "value": 7
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597812+00:00",
+      "event": "worker",
+      "message": "task finalized",
+      "details": {
+        "role": "parent",
+        "index": 0,
+        "task": "task.py",
+        "return_value": 8
+      }
+    },
+    {
+      "timestamp": "2026-07-18T12:55:36.597885+00:00",
       "event": "program",
       "message": "main orchestration finished",
       "details": {}
     },
     {
-      "timestamp": "2026-07-17T07:09:11.151994+00:00",
+      "timestamp": "2026-07-18T12:55:36.597894+00:00",
       "event": "program",
       "message": "main run finished",
       "details": {
