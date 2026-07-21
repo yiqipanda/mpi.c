@@ -123,6 +123,74 @@ class Task:
         self.finished_at = datetime.now(timezone.utc).isoformat()
         self.return_value = None
         self.result = None
+        self.clear_orchestration_task()
+
+    # Clear orchestration_task recursively for this task tree.
+    def clear_orchestration_task(self) -> None:
+        self.orchestration_task = None
+        for child in self.task_children:
+            child.clear_orchestration_task()
+
+    # Build a new attempt from task configuration without carrying runtime state.
+    def _new_attempt(self) -> "Task":
+        return Task(
+            program_assigned=self.program_assigned,
+            args=list(self.args),
+            name=self.name,
+            task_children=[child._new_attempt() for child in self.task_children],
+            dependencies=list(self.dependencies),
+            working_dir=self.working_dir,
+            environment=dict(self.environment),
+            role=self.role,
+            sequence_index=self.sequence_index,
+            fragment_name=self.fragment_name,
+        )
+
+    # Copy only trusted completed execution state into an independent task tree.
+    def _copy_completed_state_from(self, source: "Task") -> None:
+        for child_index, source_child in enumerate(source.task_children):
+            if child_index >= len(self.task_children):
+                break
+                
+            target_child = self.task_children[child_index]
+            target_child._copy_completed_state_from(source_child)
+            if source_child.task_done and source_child.completion_status == "completed":
+                child_value = source_child.return_value
+                if child_value is None:
+                    child_value = source_child.subprocess_value
+                if child_value is not None:
+                    self.captured_list[child_index] = int(child_value)
+
+        if source.task_done and source.completion_status == "completed":
+            self.captured_list = list(source.captured_list)
+            self.subtasks_done = source.subtasks_done
+            self.task_done = True
+            self.completion_status = "completed"
+            self.result = source.result
+            self.return_value = source.return_value
+            self.subprocess_value = source.subprocess_value
+            self.subprocess_done = source.subprocess_done
+            self.dependencies = list(source.dependencies)
+            self.working_dir = source.working_dir
+            self.environment = dict(source.environment)
+            self.started_at = source.started_at
+            self.finished_at = source.finished_at
+            self.return_code = source.return_code
+            self.stdout = source.stdout
+            self.stderr = source.stderr
+        else:
+            self._refresh_subtasks_done()
+        self.orchestration_task = None
+
+    # Abort this task and return a replacement tree when it has children.
+    def abort_task(self) -> "Task | None":
+        if not self.task_children:
+            self.abort()
+            return None
+
+        replacement = self._new_attempt()
+        self.abort()
+        return replacement
 
     # Return the effective program path or file assigned to this task.
     def assigned_program(self) -> str:
