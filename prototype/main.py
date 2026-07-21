@@ -66,18 +66,6 @@ class Main:
     def get_available_workers(self) -> list[Worker]:
         return [worker for worker in self.workers if worker.is_available()]
 
-    # Monitor every active worker during each Main polling cycle.
-    def _monitor_workers(self, task: Task | None = None) -> None:
-        if task is not None:
-            self.request_task_health(task)
-            return
-
-        for worker in list(self.workers):
-            assigned_task = worker.task
-            if assigned_task is None or assigned_task.task_done:
-                continue
-            self.request_task_health(assigned_task)
-
     # Check the worker currently assigned to a task and migrate it if unhealthy.
     def request_task_health(self, task: Task) -> bool | None:
         for worker in self.workers:
@@ -118,6 +106,18 @@ class Main:
             return False
 
         return None
+
+    # Monitor every live assignment from Main's polling loop.
+    def _monitor_workers(self, task: Task | None = None) -> None:
+        if task is not None:
+            self.request_task_health(task)
+            return
+
+        for worker in list(self.workers):
+            assigned_task = worker.task
+            if assigned_task is None or assigned_task.task_done:
+                continue
+            self.request_task_health(assigned_task)
 
     # Find a healthy worker that is not part of the unhealthy worker's subtree.
     def _replacement_worker(self, unhealthy_worker: Worker) -> Worker | None:
@@ -306,7 +306,7 @@ class Main:
         self.started = True
         return self.poll()
 
-    # Poll every worker and monitor their active assignments.
+    # Poll every worker and optionally request health for one assigned task.
     def poll(self, task: Task | None = None) -> dict[str, Any]:
         self._monitor_workers(task)
 

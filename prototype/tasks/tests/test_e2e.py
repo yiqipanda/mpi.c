@@ -56,7 +56,8 @@ def test_end_to_end_demo_run() -> None:
 
 def test_suddenly_unhealthy_worker_scenario() -> None:
     main_runner = Main(worker_count=4, task=build_demo_task())
-    main_runner.start()
+    main_runner.workers[0].start(main_runner.task, workers=main_runner.workers)
+    main_runner.started = True
 
     unhealthy_worker = next(
         worker

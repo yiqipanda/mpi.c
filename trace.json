@@ -1,13 +1,13 @@
 {
   "entries": [
     {
-      "timestamp": "2026-07-21T14:19:54.562727+00:00",
+      "timestamp": "2026-07-21T14:25:56.644237+00:00",
       "event": "program",
       "message": "main orchestration started",
       "details": {}
     },
     {
-      "timestamp": "2026-07-21T14:19:54.562734+00:00",
+      "timestamp": "2026-07-21T14:25:56.644245+00:00",
       "event": "program",
       "message": "main run started",
       "details": {
@@ -16,7 +16,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.562752+00:00",
+      "timestamp": "2026-07-21T14:25:56.644263+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -26,7 +26,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.565228+00:00",
+      "timestamp": "2026-07-21T14:25:56.646390+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -36,7 +36,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.567662+00:00",
+      "timestamp": "2026-07-21T14:25:56.648555+00:00",
       "event": "worker",
       "message": "task started",
       "details": {
@@ -46,7 +46,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.570161+00:00",
+      "timestamp": "2026-07-21T14:25:56.650467+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -55,7 +55,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.570218+00:00",
+      "timestamp": "2026-07-21T14:25:56.650518+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -64,7 +64,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.570224+00:00",
+      "timestamp": "2026-07-21T14:25:56.650523+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -73,7 +73,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.570356+00:00",
+      "timestamp": "2026-07-21T14:25:56.650619+00:00",
       "event": "poll",
       "message": "main poll",
       "details": {
@@ -82,7 +82,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.581691+00:00",
+      "timestamp": "2026-07-21T14:25:56.663204+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -91,7 +91,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.581715+00:00",
+      "timestamp": "2026-07-21T14:25:56.663220+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -100,7 +100,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.581729+00:00",
+      "timestamp": "2026-07-21T14:25:56.663223+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -109,7 +109,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.581851+00:00",
+      "timestamp": "2026-07-21T14:25:56.663326+00:00",
       "event": "poll",
       "message": "main poll",
       "details": {
@@ -118,7 +118,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.594417+00:00",
+      "timestamp": "2026-07-21T14:25:56.675873+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -127,7 +127,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.594437+00:00",
+      "timestamp": "2026-07-21T14:25:56.675882+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -136,7 +136,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.594442+00:00",
+      "timestamp": "2026-07-21T14:25:56.675885+00:00",
       "event": "worker",
       "message": "task health check passed",
       "details": {
@@ -145,54 +145,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.594827+00:00",
-      "event": "worker",
-      "message": "task subprocess finished",
-      "details": {
-        "role": "child",
-        "index": 1,
-        "task": "parent",
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.594929+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.607520+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 0,
-        "task": "root"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.607545+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.607550+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.607694+00:00",
+      "timestamp": "2026-07-21T14:25:56.676095+00:00",
       "event": "worker",
       "message": "task subprocess finished",
       "details": {
@@ -203,200 +156,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.607779+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620337+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 0,
-        "task": "root"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620349+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620353+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620443+00:00",
-      "event": "worker",
-      "message": "task subprocess failed",
-      "details": {
-        "role": "child",
-        "index": 2,
-        "task": "child",
-        "return_code": 1
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620506+00:00",
-      "event": "worker",
-      "message": "task aborted",
-      "details": {
-        "role": "child",
-        "index": 1
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620519+00:00",
-      "event": "worker",
-      "message": "task aborted",
-      "details": {
-        "role": "child",
-        "index": 2
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.620555+00:00",
-      "event": "worker",
-      "message": "task started",
-      "details": {
-        "role": "child",
-        "index": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.623638+00:00",
-      "event": "worker",
-      "message": "task started",
-      "details": {
-        "role": "child",
-        "index": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.626276+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.638908+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 0,
-        "task": "root"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.638939+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.638950+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.639061+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.649546+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 0,
-        "task": "root"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.649570+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.649574+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.649766+00:00",
-      "event": "poll",
-      "message": "main poll",
-      "details": {
-        "finished": false,
-        "return_code": 0
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.661403+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 0,
-        "task": "root"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.661432+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 1,
-        "task": "parent"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.661436+00:00",
-      "event": "worker",
-      "message": "task health check passed",
-      "details": {
-        "worker": 2,
-        "task": "child"
-      }
-    },
-    {
-      "timestamp": "2026-07-21T14:19:54.661891+00:00",
+      "timestamp": "2026-07-21T14:25:56.676136+00:00",
       "event": "worker",
       "message": "task subprocess finished",
       "details": {
@@ -407,7 +167,211 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662020+00:00",
+      "timestamp": "2026-07-21T14:25:56.676204+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688756+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 0,
+        "task": "root"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688767+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 1,
+        "task": "parent"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688772+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 2,
+        "task": "child"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688849+00:00",
+      "event": "worker",
+      "message": "task subprocess failed",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "child",
+        "return_code": 1
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688924+00:00",
+      "event": "worker",
+      "message": "task aborted",
+      "details": {
+        "role": "child",
+        "index": 1
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688934+00:00",
+      "event": "worker",
+      "message": "task aborted",
+      "details": {
+        "role": "child",
+        "index": 2
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.688961+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 2,
+        "task": "child"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.691378+00:00",
+      "event": "worker",
+      "message": "task started",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "parent"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.693435+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.706036+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 0,
+        "task": "root"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.706075+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 1,
+        "task": "parent"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.706078+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 2,
+        "task": "child"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.706166+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.718717+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 0,
+        "task": "root"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.718727+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 1,
+        "task": "parent"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.718735+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 2,
+        "task": "child"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.718965+00:00",
+      "event": "worker",
+      "message": "task subprocess finished",
+      "details": {
+        "role": "child",
+        "index": 1,
+        "task": "parent",
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.719030+00:00",
+      "event": "poll",
+      "message": "main poll",
+      "details": {
+        "finished": false,
+        "return_code": 0
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.731582+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 0,
+        "task": "root"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.731591+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 1,
+        "task": "parent"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.731597+00:00",
+      "event": "worker",
+      "message": "task health check passed",
+      "details": {
+        "worker": 2,
+        "task": "child"
+      }
+    },
+    {
+      "timestamp": "2026-07-21T14:25:56.731696+00:00",
       "event": "worker",
       "message": "task subprocess finished",
       "details": {
@@ -418,7 +382,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662031+00:00",
+      "timestamp": "2026-07-21T14:25:56.731704+00:00",
       "event": "worker",
       "message": "task finalized",
       "details": {
@@ -429,7 +393,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662059+00:00",
+      "timestamp": "2026-07-21T14:25:56.731722+00:00",
       "event": "worker",
       "message": "captured child result",
       "details": {
@@ -441,7 +405,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662066+00:00",
+      "timestamp": "2026-07-21T14:25:56.731727+00:00",
       "event": "worker",
       "message": "task finalized",
       "details": {
@@ -452,7 +416,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662084+00:00",
+      "timestamp": "2026-07-21T14:25:56.731739+00:00",
       "event": "worker",
       "message": "captured child result",
       "details": {
@@ -464,7 +428,7 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662088+00:00",
+      "timestamp": "2026-07-21T14:25:56.731742+00:00",
       "event": "worker",
       "message": "task finalized",
       "details": {
@@ -475,13 +439,13 @@
       }
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662147+00:00",
+      "timestamp": "2026-07-21T14:25:56.731792+00:00",
       "event": "program",
       "message": "main orchestration finished",
       "details": {}
     },
     {
-      "timestamp": "2026-07-21T14:19:54.662153+00:00",
+      "timestamp": "2026-07-21T14:25:56.731797+00:00",
       "event": "program",
       "message": "main run finished",
       "details": {
