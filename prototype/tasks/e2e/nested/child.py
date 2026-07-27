@@ -1,6 +1,5 @@
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 marker = Path(sys.argv[1])
 if marker.exists():

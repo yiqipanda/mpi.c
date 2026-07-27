@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-import json
 
 
 @dataclass
 class Trace:
     enabled: bool = True
     path: Path | None = None
-    entries: list[dict[str, Any]] = field(default_factory=list)
+    entries: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
 
     # Record a generic trace event with optional structured details.
     def record(self, event: str, message: str = "", **details: Any) -> dict[str, Any]:
@@ -57,4 +57,3 @@ class Trace:
     # Remove every recorded entry from the trace log.
     def clear(self) -> None:
         self.entries.clear()
-

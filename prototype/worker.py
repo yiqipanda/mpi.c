@@ -1,46 +1,54 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
 import subprocess
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from trace import Trace
+from typing import Any, cast
 
 from task import Task
-from trace import Trace
 
 TERMINAL_STATES = {"completed", "failed", "aborted"}
+
 
 @dataclass
 class Worker:
     role: str = "worker"
     index: int = 0
     task: Task | None = None
-    parent_worker: "Worker" | None = None
+    parent_worker: Worker | None = None
     task_index: int | None = None
     healthy: bool = True
     assignment_generation: int = 0
     trace: Trace = field(default_factory=Trace)
-    status: dict[str, Any] = field(default_factory=lambda: {
-        "program_state": "idle",
-        "parent_state": "idle",
-        "task_state": "idle",
-        "child_states": {},
-        "parent_pid": None,
-        "child_pids": [],
-        "return_code": None,
-        "message": "",
-        "started_at": None,
-        "finished_at": None,
-    })
+    status: dict[str, Any] = field(
+        default_factory=lambda: {
+            "program_state": "idle",
+            "parent_state": "idle",
+            "task_state": "idle",
+            "child_states": {},
+            "parent_pid": None,
+            "child_pids": [],
+            "return_code": None,
+            "message": "",
+            "started_at": None,
+            "finished_at": None,
+        }
+    )
     last_report: dict[str, Any] | None = None
     process: subprocess.Popen[str] | None = None
     process_generation: int | None = None
-    child_workers: list["Worker"] = field(default_factory=list)
+    child_workers: list[Worker] = field(
+        default_factory=cast(Callable[[], list["Worker"]], list)
+    )
     pid: int | None = None
 
     # Report whether this worker can accept a new task assignment.
     def is_available(self) -> bool:
-        return self.healthy and self.process is None and (
-            self.task is None or self.task.completion_status in TERMINAL_STATES
+        return (
+            self.healthy
+            and self.process is None
+            and (self.task is None or self.task.completion_status in TERMINAL_STATES)
         )
 
     # Respond to a health request for the task currently assigned to this worker.
@@ -50,7 +58,7 @@ class Worker:
         return self.healthy
 
     # Find workers that can receive fragmented child tasks.
-    def _available_workers(self, workers: list["Worker"] | None) -> list["Worker"]:
+    def _available_workers(self, workers: list[Worker] | None) -> list[Worker]:
         if not workers:
             return []
         return [
@@ -68,7 +76,9 @@ class Worker:
         self.status["program_state"] = "running"
         self.status["task_state"] = "running"
         self.status["message"] = f"{self.role} worker started {task.name}"
-        self.trace.record("worker", "task started", role=self.role, index=self.index, task=task.name)
+        self.trace.record(
+            "worker", "task started", role=self.role, index=self.index, task=task.name
+        )
 
         self.process = subprocess.Popen(
             task.spawn_argv(),
@@ -91,7 +101,9 @@ class Worker:
             self.status["program_state"] = "aborted"
             self.status["task_state"] = "aborted"
             self.status["message"] = f"{self.role} worker aborted {self.task.name}"
-            self.trace.record("worker", "task aborted", role=self.role, index=self.index)
+            self.trace.record(
+                "worker", "task aborted", role=self.role, index=self.index
+            )
 
         for child_worker in list(self.child_workers):
             child_worker._abort_worker_tree()
@@ -104,7 +116,9 @@ class Worker:
         self.assignment_generation += 1
 
     # Replace a worker's task reference in its parent task tree.
-    def _replace_parent_task_reference(self, previous_task: Task, replacement_task: Task) -> None:
+    def _replace_parent_task_reference(
+        self, previous_task: Task, replacement_task: Task
+    ) -> None:
         parent_worker = self.parent_worker
         if parent_worker is None or parent_worker.task is None:
             return
@@ -119,7 +133,9 @@ class Worker:
                 return
 
     # Roll back to the parent worker and restart its current task definition.
-    def _fallback_to_parent_worker(self, workers: list["Worker"] | None = None) -> Task | None:
+    def _fallback_to_parent_worker(
+        self, workers: list[Worker] | None = None
+    ) -> Task | None:
         rollback_root = self.parent_worker or self
         if rollback_root.task is None:
             return None
@@ -137,7 +153,9 @@ class Worker:
         rollback_root.status["return_code"] = None
         rollback_root.status["finished_at"] = None
         rollback_root.last_report = None
-        rollback_root.status["message"] = f"{rollback_root.role} worker retrying {rollback_root.task.name}"
+        rollback_root.status["message"] = (
+            f"{rollback_root.role} worker retrying {rollback_root.task.name}"
+        )
         rollback_root.start(rollback_root.task, workers=workers)
         return replacement_task
 
@@ -169,7 +187,10 @@ class Worker:
                 continue
             if not child_worker.task.task_done:
                 continue
-            if child_index < len(self.task.captured_list) and self.task.captured_list[child_index] is not None:
+            if (
+                child_index < len(self.task.captured_list)
+                and self.task.captured_list[child_index] is not None
+            ):
                 continue
 
             child_value = self._child_task_value(child_worker.task)
@@ -198,8 +219,12 @@ class Worker:
         if not self.task.subprocess_done or not self.task.subtasks_done:
             return
 
-        child_values = [int(value) for value in self.task.captured_list if value is not None]
-        subprocess_value = 0 if self.task.subprocess_value is None else int(self.task.subprocess_value)
+        child_values = [
+            int(value) for value in self.task.captured_list if value is not None
+        ]
+        subprocess_value = (
+            0 if self.task.subprocess_value is None else int(self.task.subprocess_value)
+        )
         final_value = subprocess_value + sum(child_values)
         finished_at = self.trace.record(
             "worker",
@@ -231,7 +256,7 @@ class Worker:
         }
 
     # Poll the subprocess and finalize task state if it has exited.
-    def poll(self, *, workers: list["Worker"] | None = None) -> dict[str, Any]:
+    def poll(self, *, workers: list[Worker] | None = None) -> dict[str, Any]:
         self._start_children(workers)
 
         if self.process is not None and self.task is not None:
@@ -273,7 +298,9 @@ class Worker:
                 self.status["program_state"] = "running"
                 self.status["task_state"] = self.task.completion_status
                 self.status["return_code"] = return_code
-                self.status["message"] = f"{self.role} worker subprocess finished {self.task.name}"
+                self.status["message"] = (
+                    f"{self.role} worker subprocess finished {self.task.name}"
+                )
                 self.trace.record(
                     "worker",
                     "task subprocess finished",
@@ -296,7 +323,7 @@ class Worker:
         self._abort_worker_tree()
 
     # Start pending child tasks on available workers.
-    def _start_children(self, workers: list["Worker"] | None) -> None:
+    def _start_children(self, workers: list[Worker] | None) -> None:
         if self.task is None:
             return
 
@@ -305,7 +332,9 @@ class Worker:
             for worker in self.child_workers
             if worker.task is not None and worker.task_index is not None
         }
-        delegated_tasks = {id(worker.task) for worker in self.child_workers if worker.task is not None}
+        delegated_tasks = {
+            id(worker.task) for worker in self.child_workers if worker.task is not None
+        }
         for child_index, child_task in enumerate(self.task.task_children):
             if (
                 child_index in delegated_indices
@@ -328,7 +357,9 @@ class Worker:
             delegated_tasks.add(id(child_task))
 
     # Start this worker's task and any child tasks without waiting for completion.
-    def start(self, task: Task | None = None, *, workers: list["Worker"] | None = None) -> dict[str, Any]:
+    def start(
+        self, task: Task | None = None, *, workers: list[Worker] | None = None
+    ) -> dict[str, Any]:
         task = task or self.task
         if task is None:
             raise RuntimeError("Worker requires a task before execution")

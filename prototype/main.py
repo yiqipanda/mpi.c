@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
 import os
 import sys
 import time
+from pathlib import Path
+from trace import Trace
+from typing import Any
 
 from task import Task
-from trace import Trace
 from worker import Worker
 
 
 class Main:
-    # Set up the simulation with explicit constructor parameters instead of config files.
+    # Set up the simulation with explicit constructor parameters instead of
+    # config files.
     def __init__(
         self,
         worker_count: int = 3,
@@ -54,9 +55,14 @@ class Main:
     # Build the worker registry owned by Main.
     def _build_workers(self) -> list[Worker]:
         return [
-            Worker(role="parent" if index == 0 else "child", index=index, trace=self.trace)
+            Worker(
+                role="parent" if index == 0 else "child", index=index, trace=self.trace
+            )
             for index in range(self.worker_count)
         ]
+
+    def get_self(self):
+        return self
 
     # Describe the workers that will participate in the simulation.
     def get_workers(self) -> list[Worker]:
@@ -169,7 +175,10 @@ class Main:
             replacement_child._copy_completed_state_from(trusted_child)
             replacement.task_children[child_index] = replacement_child
 
-            if replacement_child.task_done and replacement_child.completion_status == "completed":
+            if (
+                replacement_child.task_done
+                and replacement_child.completion_status == "completed"
+            ):
                 child_value = replacement_child.return_value
                 if child_value is None:
                     child_value = replacement_child.subprocess_value
@@ -217,7 +226,9 @@ class Main:
         source.task_index = None
         source.status["program_state"] = "unavailable"
         source.status["task_state"] = "unavailable"
-        source.status["message"] = f"{source.role} worker unavailable after health failure"
+        source.status["message"] = (
+            f"{source.role} worker unavailable after health failure"
+        )
 
         if target.task is not None or target.child_workers:
             target._abort_worker_tree()
@@ -233,15 +244,16 @@ class Main:
             child_worker.status["return_code"] = None
             child_worker.status["finished_at"] = None
             child_worker.status["message"] = (
-                f"{child_worker.role} worker received "
-                f"{child_worker.task.name}"
+                f"{child_worker.role} worker received {child_worker.task.name}"
             )
         target.last_report = None
         target.status["program_state"] = "running"
         target.status["task_state"] = "running"
         target.status["return_code"] = None
         target.status["finished_at"] = None
-        target.status["message"] = f"{target.role} worker received {replacement_task.name}"
+        target.status["message"] = (
+            f"{target.role} worker received {replacement_task.name}"
+        )
         target.start(replacement_task, workers=self.workers)
         for child_worker, _ in child_bindings:
             child_worker.start(child_worker.task, workers=self.workers)
@@ -277,7 +289,8 @@ class Main:
     def _trace_program(self, message: str, **details: Any) -> None:
         self.trace.program(message, **details)
 
-    # Report whether the task tree and worker subprocesses have all reached terminal states.
+    # Report whether the task tree and worker subprocesses have all reached
+    # terminal states.
     def is_finished(self) -> bool:
         if any(worker.process is not None for worker in self.workers):
             return False
@@ -296,8 +309,12 @@ class Main:
         self.status["program_state"] = "running"
         self.status["task_state"] = "running"
         self.status["message"] = "main orchestration started"
-        self.status["started_at"] = self.trace.record("program", "main orchestration started")["timestamp"]
-        self._trace_program("main run started", worker_count=self.worker_count, task=self.task.name)
+        self.status["started_at"] = self.trace.record(
+            "program", "main orchestration started"
+        )["timestamp"]
+        self._trace_program(
+            "main run started", worker_count=self.worker_count, task=self.task.name
+        )
 
         self.workers[0].start(self.task, workers=self.workers)
         self.status["parent_state"] = "running"
@@ -318,27 +335,39 @@ class Main:
         self.task = root_task
         worker_snapshots = [worker.snapshot() for worker in self.workers]
         child_states = {
-            worker.index: ("idle" if worker.task is None else worker.task.completion_status)
+            worker.index: (
+                "idle" if worker.task is None else worker.task.completion_status
+            )
             for worker in self.workers[1:]
         }
         root_status = root_task.completion_status
         return_code = self._combined_return_code(root_task)
         finished = self.is_finished() if self.started else False
 
-        self.status["parent_state"] = root_status if self.workers[0].task is not None else "idle"
+        self.status["parent_state"] = (
+            root_status if self.workers[0].task is not None else "idle"
+        )
         self.status["child_states"] = child_states
-        self.status["task_state"] = "completed" if finished and return_code == 0 else root_status
-        self.status["program_state"] = "finished" if finished else ("running" if self.started else "idle")
+        self.status["task_state"] = (
+            "completed" if finished and return_code == 0 else root_status
+        )
+        self.status["program_state"] = (
+            "finished" if finished else ("running" if self.started else "idle")
+        )
         self.status["return_code"] = return_code if finished else None
         self.status["return_value"] = root_task.return_value
         if finished and self.status["finished_at"] is None:
             self.status["message"] = "main orchestration finished"
-            self.status["finished_at"] = self.trace.record("program", "main orchestration finished")["timestamp"]
+            self.status["finished_at"] = self.trace.record(
+                "program", "main orchestration finished"
+            )["timestamp"]
             self._trace_program("main run finished", return_code=return_code)
             if self.trace.path is not None:
                 self.trace.dump()
 
-        self.trace.record("poll", "main poll", finished=finished, return_code=return_code)
+        self.trace.record(
+            "poll", "main poll", finished=finished, return_code=return_code
+        )
         return {
             "task": root_task.to_dict(),
             "workers": worker_snapshots,
@@ -363,7 +392,8 @@ class Main:
             return_codes.extend(self._task_return_codes(child))
         return return_codes
 
-    # Wait is a convenience wrapper for demos/tests; callers can use poll() directly instead.
+    # Wait is a convenience wrapper for demos/tests; callers can use poll()
+    # directly instead.
     def wait(self, poll_interval: float = 0.01, timeout: float = 5.0) -> dict[str, Any]:
         if not self.started:
             snapshot = self.start()

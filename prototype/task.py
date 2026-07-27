@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import shlex
+import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-import shlex
-import sys
-
+from typing import Any, cast
 
 TASKS_DIR = Path(__file__).resolve().parent / "tasks"
 
@@ -14,10 +14,12 @@ TASKS_DIR = Path(__file__).resolve().parent / "tasks"
 @dataclass
 class Task:
     program_assigned: str
-    args: list[str] = field(default_factory=list)
+    args: list[str] = field(default_factory=list[str])
     name: str = "task"
-    task_children: list["Task"] = field(default_factory=list)
-    captured_list: list[int | None] = field(default_factory=list)
+    task_children: list[Task] = field(
+        default_factory=cast(Callable[[], list["Task"]], list)
+    )
+    captured_list: list[int | None] = field(default_factory=list[int | None])
     subtasks_done: bool = False
     task_done: bool = False
     completion_status: str = "pending"
@@ -25,9 +27,9 @@ class Task:
     return_value: int | None = None
     subprocess_value: int | None = None
     subprocess_done: bool = False
-    dependencies: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list[str])
     working_dir: str | None = None
-    environment: dict[str, str] = field(default_factory=dict)
+    environment: dict[str, str] = field(default_factory=dict[str, str])
     started_at: str | None = None
     finished_at: str | None = None
     return_code: int | None = None
@@ -132,7 +134,7 @@ class Task:
             child.clear_orchestration_task()
 
     # Build a new attempt from task configuration without carrying runtime state.
-    def _new_attempt(self) -> "Task":
+    def _new_attempt(self) -> Task:
         return Task(
             program_assigned=self.program_assigned,
             args=list(self.args),
@@ -147,11 +149,11 @@ class Task:
         )
 
     # Copy only trusted completed execution state into an independent task tree.
-    def _copy_completed_state_from(self, source: "Task") -> None:
+    def _copy_completed_state_from(self, source: Task) -> None:
         for child_index, source_child in enumerate(source.task_children):
             if child_index >= len(self.task_children):
                 break
-                
+
             target_child = self.task_children[child_index]
             target_child._copy_completed_state_from(source_child)
             if source_child.task_done and source_child.completion_status == "completed":
@@ -183,7 +185,7 @@ class Task:
         self.orchestration_task = None
 
     # Abort this task and return a replacement tree when it has children.
-    def abort_task(self) -> "Task | None":
+    def abort_task(self) -> Task | None:
         if not self.task_children:
             self.abort()
             return None
@@ -198,7 +200,11 @@ class Task:
 
     # Build the subprocess argument vector for this program task.
     def spawn_argv(self) -> list[str]:
-        argv = [self.program_assigned, *self.args] if self.args else shlex.split(self.program_assigned)
+        argv = (
+            [self.program_assigned, *self.args]
+            if self.args
+            else shlex.split(self.program_assigned)
+        )
         if not argv:
             return []
 
@@ -224,17 +230,23 @@ class Task:
         sequence_index: int | None = None,
         completion_status: str | None = None,
         fragment_name: str | None = None,
-        task_children: list["Task"] | None = None,
-    ) -> "Task":
+        task_children: list[Task] | None = None,
+    ) -> Task:
         children = list(self.task_children) if task_children is None else task_children
         return replace(
             self,
             task_children=children,
             captured_list=[None] * len(children),
             role=self.role if role is None else role,
-            sequence_index=self.sequence_index if sequence_index is None else sequence_index,
-            completion_status=self.completion_status if completion_status is None else completion_status,
-            fragment_name=self.fragment_name if fragment_name is None else fragment_name,
+            sequence_index=self.sequence_index
+            if sequence_index is None
+            else sequence_index,
+            completion_status=self.completion_status
+            if completion_status is None
+            else completion_status,
+            fragment_name=self.fragment_name
+            if fragment_name is None
+            else fragment_name,
             result=None,
             return_value=None,
             subprocess_value=None,
@@ -278,16 +290,20 @@ class Task:
 
     # Reconstruct a task from a serialized dictionary.
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Task":
+    def from_dict(cls, data: dict[str, Any]) -> Task:
         return cls(
             program_assigned=data.get("program_assigned", data.get("program", "")),
             args=list(data.get("args", [])),
             name=data.get("name", "task"),
-            task_children=[cls.from_dict(child) for child in data.get("task_children", [])],
+            task_children=[
+                cls.from_dict(child) for child in data.get("task_children", [])
+            ],
             captured_list=list(data.get("captured_list", [])),
             subtasks_done=bool(data.get("subtasks_done", False)),
             task_done=bool(data.get("task_done", False)),
-            completion_status=data.get("completion_status", data.get("status", "pending")),
+            completion_status=data.get(
+                "completion_status", data.get("status", "pending")
+            ),
             result=data.get("result"),
             return_value=data.get("return_value"),
             subprocess_value=data.get("subprocess_value"),

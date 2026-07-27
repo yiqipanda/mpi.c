@@ -8,3 +8,36 @@ version = "0.1.0"
 description = "Python subprocess prototype for task division and worker coordination"
 requires-python = ">=3.10"
 
+[tool.pyright]
+typeCheckingMode = "strict"
+
+# Optional knobs you can add here later:
+# include = ["prototype"]
+# exclude = ["build", "dist", ".venv"]
+# reportMissingTypeStubs = "warning"
+# reportUnknownMemberType = "error"
+
+[tool.ruff]
+# Optional knobs you can add here later:
+# target-version = "py310"
+# line-length = 88
+# src = ["prototype"]
+# exclude = ["build", "dist", ".venv"]
+
+# Ruff's lint settings live under [tool.ruff.lint].
+# [tool.ruff.lint]
+# select = ["E", "F", "I", "B", "UP"]
+# ignore = ["E501"]
+# per-file-ignores = { "prototype/tasks/e2e/*.py" = ["F401"] }
+
+# Ruff's formatter settings live under [tool.ruff.format].
+# [tool.ruff.format]
+# quote-style = "double"
+# indent-style = "space"
+
+[tool.vulture]
+paths = ["prototype"]
+exclude = ["*test*.py", "*/test_*.py", "*/tests/*.py"]
+min_confidence = 80
+verbose = false
+
