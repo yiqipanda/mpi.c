@@ -1,0 +1,9 @@
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/mpi_sim.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/mpi_sim_pid.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/mpi_sim_demo.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/edit_cache.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/rebuild_cache.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/list_install_components.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/install.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/install/local.dir
+/Users/macbook/Downloads/mpi-2.c-main/build-ninja/CMakeFiles/install/strip.dir

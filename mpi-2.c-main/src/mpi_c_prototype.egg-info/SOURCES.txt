@@ -1,0 +1,8 @@
+LICENSE
+README.md
+pyproject.toml
+src/mpi_c_prototype.egg-info/PKG-INFO
+src/mpi_c_prototype.egg-info/SOURCES.txt
+src/mpi_c_prototype.egg-info/dependency_links.txt
+src/mpi_c_prototype.egg-info/requires.txt
+src/mpi_c_prototype.egg-info/top_level.txt

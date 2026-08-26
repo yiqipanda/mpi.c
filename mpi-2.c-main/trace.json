@@ -1,0 +1,6 @@
+[
+{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":167,"pid":0,"tid":0},
+{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":213,"pid":1,"tid":0},
+{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":256,"pid":3,"tid":0},
+{"name":"THREAD_START","cat":"Runtime","ph":"i","ts":289,"pid":2,"tid":0}
+]

@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: mpi-c-prototype
+Version: 0.1.0
+Summary: Python subprocess prototype for task division and worker coordination
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: dash>=2.17
+Requires-Dist: pandas>=2.0
+Requires-Dist: plotly>=5.20
+Dynamic: license-file

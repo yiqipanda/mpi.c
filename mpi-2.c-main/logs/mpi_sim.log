@@ -1,0 +1,37 @@
+[runtime] created world_size=4 debug=1
+[rank 0] init complete
+[rank 1] init complete
+[rank 3] init complete
+[rank 2] init complete
+[rank 0] started
+[rank 0] send -> 1 tag=0 size=128
+[rank 0] send -> 2 tag=0 size=128
+[rank 0] send -> 3 tag=0 size=128
+[rank 0] broadcasted 128 bytes
+[rank 2] started
+[rank 2] recv <- 0 tag=0 size=128
+[rank 2] entering barrier
+[rank 0] send -> 1 tag=7 size=5
+[rank 3] started
+[rank 3] recv <- 0 tag=0 size=128
+[rank 3] entering barrier
+[rank 1] started
+[rank 1] recv <- 0 tag=0 size=128
+[rank 1] recv <- 0 tag=7 size=5
+[rank 1] send -> 0 tag=8 size=5
+[rank 1] entering barrier
+[rank 0] recv <- 1 tag=8 size=5
+[rank 0] entering barrier
+[rank 0] leaving barrier
+[rank 0] finalize
+[rank 0] finished
+[rank 3] leaving barrier
+[rank 3] finalize
+[rank 3] finished
+[rank 2] leaving barrier
+[rank 1] leaving barrier
+[rank 1] finalize
+[rank 1] finished
+[rank 2] finalize
+[rank 2] finished
+[runtime] destroying

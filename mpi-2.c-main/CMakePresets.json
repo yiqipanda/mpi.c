@@ -1,0 +1,33 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "ninja",
+      "displayName": "Ninja",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-ninja",
+      "cacheVariables": {
+        "DEBUG": "ON"
+      }
+    },
+    {
+      "name": "make",
+      "displayName": "Unix Makefiles",
+      "generator": "Unix Makefiles",
+      "binaryDir": "${sourceDir}/build-make",
+      "cacheVariables": {
+        "DEBUG": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ninja",
+      "configurePreset": "ninja"
+    },
+    {
+      "name": "make",
+      "configurePreset": "make"
+    }
+  ]
+}
