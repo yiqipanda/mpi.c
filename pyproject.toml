@@ -41,3 +41,6 @@ exclude = ["*test*.py", "*/test_*.py", "*/tests/*.py"]
 min_confidence = 80
 verbose = false
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["prototype"]

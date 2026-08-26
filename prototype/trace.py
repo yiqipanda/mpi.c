@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 @dataclass
@@ -12,11 +17,12 @@ class Trace:
     enabled: bool = True
     path: Path | None = None
     entries: list[dict[str, Any]] = field(default_factory=list[dict[str, Any]])
+    clock: Callable[[], datetime] = field(default=utc_now, repr=False)
 
     # Record a generic trace event with optional structured details.
     def record(self, event: str, message: str = "", **details: Any) -> dict[str, Any]:
         entry = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": self.clock().isoformat(),
             "event": event,
             "message": message,
             "details": details,
@@ -45,6 +51,9 @@ class Trace:
     def to_dict(self) -> dict[str, Any]:
         return {"entries": list(self.entries)}
 
+    def snapshot(self) -> dict[str, Any]:
+        return self.to_dict()
+
     # Write the trace log to disk as JSON.
     def dump(self, path: str | Path | None = None) -> Path | None:
         target = Path(path) if path is not None else self.path
@@ -53,6 +62,9 @@ class Trace:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
         return target
+
+    def persist_if_configured(self) -> Path | None:
+        return self.dump() if self.path is not None else None
 
     # Remove every recorded entry from the trace log.
     def clear(self) -> None:

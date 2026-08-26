@@ -1,16 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 
-
-PROTOTYPE_ROOT = Path(__file__).resolve().parents[2]
-
-if str(PROTOTYPE_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROTOTYPE_ROOT))
-
-from main import Main  # noqa: E402
-from task import Task  # noqa: E402
+from prototype.main import Main
+from prototype.task import Task
+from prototype.trace import Trace
 
 
 def build_demo_task() -> Task:
@@ -36,7 +30,7 @@ def build_demo_task() -> Task:
 
 
 def test_end_to_end_demo_run() -> None:
-    main_runner = Main(worker_count=4, task=build_demo_task())
+    main_runner = Main(worker_count=4, task=build_demo_task(), trace=Trace(path=None))
     report = main_runner.run()
 
     assert report["finished"] is True
@@ -55,7 +49,7 @@ def test_end_to_end_demo_run() -> None:
 
 
 def test_suddenly_unhealthy_worker_scenario() -> None:
-    main_runner = Main(worker_count=4, task=build_demo_task())
+    main_runner = Main(worker_count=4, task=build_demo_task(), trace=Trace(path=None))
     main_runner.workers[0].start(main_runner.task, workers=main_runner.workers)
     main_runner.started = True
 
@@ -81,13 +75,15 @@ def test_suddenly_unhealthy_worker_scenario() -> None:
         for worker in main_runner.workers
         if worker.task is not None and worker.task.name == "task3.py"
     )
+    replacement_task = replacement_worker.task
     assert replacement_worker is not unhealthy_worker
-    assert replacement_worker.task is not old_task
-    assert replacement_worker.task.task_done is True
-    assert replacement_worker.task.task_children[0].task_done is True
+    assert replacement_task is not None
+    assert replacement_task is not old_task
+    assert replacement_task.task_done is True
+    assert replacement_task.task_children[0].task_done is True
 
 
-def test_failure_rolls_back_to_parent_and_retries(tmp_path: Path) -> None:
+def test_failure_moves_to_another_worker_and_retries(tmp_path: Path) -> None:
     marker = tmp_path / "child-marker.txt"
 
     task = Task(
@@ -102,7 +98,7 @@ def test_failure_rolls_back_to_parent_and_retries(tmp_path: Path) -> None:
         ],
     )
 
-    main_runner = Main(worker_count=2, task=task)
+    main_runner = Main(worker_count=3, task=task, trace=Trace(path=None))
     report = main_runner.run()
 
     assert report["finished"] is True
@@ -119,7 +115,7 @@ def test_failure_rolls_back_to_parent_and_retries(tmp_path: Path) -> None:
     assert live_root_task.task_children[0].return_value == 7
 
 
-def test_nested_failure_replaces_task_in_parent_tree(tmp_path: Path) -> None:
+def test_nested_failure_replaces_failed_task_in_parent_tree(tmp_path: Path) -> None:
     marker = tmp_path / "nested-marker.txt"
 
     parent_task = Task(
@@ -138,22 +134,24 @@ def test_nested_failure_replaces_task_in_parent_tree(tmp_path: Path) -> None:
         name="root",
         task_children=[parent_task],
     )
+    old_child_task = parent_task.task_children[0]
 
-    main_runner = Main(worker_count=3, task=task)
+    main_runner = Main(worker_count=4, task=task, trace=Trace(path=None))
     report = main_runner.run()
 
     assert report["finished"] is True
     assert report["return_code"] == 0
     assert report["return_value"] == 7
     assert main_runner.workers[0].task is task
-    assert task.task_children[0] is not parent_task
+    assert task.task_children[0] is parent_task
+    assert task.task_children[0].task_children[0] is not old_child_task
     assert task.task_children[0].task_done is True
     assert task.task_children[0].return_value == 6
 
 
 def test_abort_task_returns_none_for_leaf_node() -> None:
     task = Task(program_assigned="leaf.py", name="leaf")
-    main_runner = Main(worker_count=1, task=task)
+    main_runner = Main(worker_count=1, task=task, trace=Trace(path=None))
 
     replacement = main_runner.abort_task(task)
 
@@ -177,7 +175,7 @@ def test_abort_task_returns_fresh_tree_for_fragmented_task() -> None:
             )
         ],
     )
-    main_runner = Main(worker_count=1, task=task)
+    main_runner = Main(worker_count=1, task=task, trace=Trace(path=None))
 
     replacement = main_runner.abort_task(task)
 

@@ -4,16 +4,15 @@ import os
 import sys
 import time
 from pathlib import Path
-from trace import Trace
 from typing import Any
 
-from task import Task
-from worker import Worker
+from prototype.status import MainStatus, TaskState, new_main_status
+from prototype.task import Task
+from prototype.trace import Trace
+from prototype.worker import Prunner, Worker
 
 
 class Main:
-    # Set up the simulation with explicit constructor parameters instead of
-    # config files.
     def __init__(
         self,
         worker_count: int = 3,
@@ -24,55 +23,38 @@ class Main:
         self.task = task or self._build_default_task()
         self.trace = trace or Trace(path=Path("trace.json"))
         self.workers: list[Worker] = self._build_workers()
-        self.status: dict[str, Any] = {
-            "program_state": "idle",
-            "parent_state": "idle",
-            "task_state": "idle",
-            "child_states": {},
-            "parent_pid": None,
-            "child_pids": [],
-            "return_code": None,
-            "return_value": None,
-            "message": "",
-            "started_at": None,
-            "finished_at": None,
-        }
+        self.status: MainStatus = new_main_status()
         self.started = False
+        self.pending_recoveries: list[Worker] = []
 
-    # Build the default program task used by the demo launcher.
     def _build_default_task(self) -> Task:
         program = os.environ.get("PYTHON", sys.executable)
         return Task(
             program_assigned=program,
-            args=[
-                "-c",
-                "print(10)",
-            ],
+            args=["-c", "print(10)"],
             name="demo-task",
             fragment_name="taskA",
         )
 
-    # Build the worker registry owned by Main.
     def _build_workers(self) -> list[Worker]:
         return [
             Worker(
-                role="parent" if index == 0 else "child", index=index, trace=self.trace
+                role="parent" if index == 0 else "child",
+                index=index,
+                trace=self.trace,
             )
             for index in range(self.worker_count)
         ]
 
-    def get_self(self):
+    def get_self(self) -> Main:
         return self
 
-    # Describe the workers that will participate in the simulation.
     def get_workers(self) -> list[Worker]:
         return self.workers
 
-    # Return workers that are available to receive a task assignment.
     def get_available_workers(self) -> list[Worker]:
         return [worker for worker in self.workers if worker.is_available()]
 
-    # Check the worker currently assigned to a task and migrate it if unhealthy.
     def request_task_health(self, task: Task) -> bool | None:
         for worker in self.workers:
             health = worker.health_check(task)
@@ -86,213 +68,250 @@ class Main:
                     task=task.name,
                 )
                 return True
-
-            worker.healthy = False
-            worker.status["program_state"] = "unavailable"
-            worker.status["task_state"] = "unavailable"
-            worker.status["message"] = f"{worker.role} worker failed health check"
-            replacement = self._replacement_worker(worker)
-            if replacement is None:
-                self.trace.record(
-                    "worker",
-                    "task health check failed without replacement",
-                    worker=worker.index,
-                    task=task.name,
-                )
-                return False
-
-            self._transfer_task(worker, replacement)
-            self.trace.record(
-                "worker",
-                "task transferred after worker health failure",
-                worker=worker.index,
-                replacement_worker=replacement.index,
-                task=task.name,
-            )
+            self._queue_recovery(worker, f"{worker.role} worker failed health check")
+            self._recover_pending_assignments()
             return False
-
         return None
 
-    # Monitor every live assignment from Main's polling loop.
     def _monitor_workers(self, task: Task | None = None) -> None:
         if task is not None:
             self.request_task_health(task)
             return
-
         for worker in list(self.workers):
-            assigned_task = worker.task
-            if assigned_task is None or assigned_task.task_done:
+            assignment = worker.assignment()
+            if assignment.task is None or assignment.task.task_done:
                 continue
-            self.request_task_health(assigned_task)
+            if worker in self.pending_recoveries:
+                continue
+            self.request_task_health(assignment.task)
 
-    # Find a healthy worker that is not part of the unhealthy worker's subtree.
+    def _queue_recovery(self, worker: Worker, message: str) -> None:
+        if worker not in self.pending_recoveries:
+            self.pending_recoveries.append(worker)
+            worker.stop_local_process(clear_pid=True)
+            worker.mark_unavailable(message)
+            assignment = worker.assignment()
+            self.trace.record(
+                "worker",
+                "assignment waiting for replacement",
+                worker=worker.index,
+                task=assignment.task.name if assignment.task is not None else None,
+            )
+
+    def _collect_execution_failures(self) -> None:
+        for worker in self.workers:
+            if worker.needs_recovery():
+                self._queue_recovery(
+                    worker,
+                    f"{worker.role} worker unavailable after subprocess failure",
+                )
+
+    def _descendants(self, worker: Worker) -> set[int]:
+        descendants: set[int] = set()
+        stack = list(worker.assignment().children)
+        while stack:
+            candidate = stack.pop()
+            if id(candidate) in descendants:
+                continue
+            descendants.add(id(candidate))
+            stack.extend(candidate.assignment().children)
+        return descendants
+
     def _replacement_worker(self, unhealthy_worker: Worker) -> Worker | None:
-        excluded = {id(worker) for worker in unhealthy_worker.child_workers}
-        ancestor = unhealthy_worker.parent_worker
+        descendants = self._descendants(unhealthy_worker)
+        excluded = {id(unhealthy_worker)}
+        ancestor = unhealthy_worker.assignment().parent
         while ancestor is not None:
             excluded.add(id(ancestor))
-            ancestor = ancestor.parent_worker
-        candidates = [
-            worker
-            for worker in self.workers
-            if worker is not unhealthy_worker
-            and id(worker) not in excluded
-            and worker.is_available()
-        ]
-        return next((worker for worker in candidates if worker.task is None), None) or (
-            candidates[0] if candidates else None
+            ancestor = ancestor.assignment().parent
+        candidates: list[Worker] = []
+        for worker in self.workers:
+            if id(worker) in excluded or not worker.is_available():
+                continue
+            assignment = worker.assignment()
+            if assignment.parent is not None and id(worker) not in descendants:
+                continue
+            candidates.append(worker)
+        return next(
+            (worker for worker in candidates if worker.assignment().task is None),
+            candidates[0] if candidates else None,
         )
 
-    # Find the child slot represented by a worker assignment.
-    def _child_index(self, parent_task: Task, child_worker: Worker) -> int | None:
-        if child_worker.task_index is not None:
-            if 0 <= child_worker.task_index < len(parent_task.task_children):
-                return child_worker.task_index
-            return None
-
-        for child_index, child_task in enumerate(parent_task.task_children):
-            if child_worker.task is child_task:
-                return child_index
-        return None
-
-    # Create an isolated task tree while preserving trusted completed children.
     def _isolated_task_for_worker(self, source_worker: Worker) -> Task:
-        source_task = source_worker.task
+        assignment = source_worker.assignment()
+        source_task = assignment.task
         if source_task is None:
             raise RuntimeError("Cannot isolate a worker without a task")
-
-        replacement = source_task._new_attempt()
-        for child_worker in source_worker.child_workers:
-            if not child_worker.healthy or child_worker.task is None:
+        trusted_children: dict[int, Task] = {}
+        for child_worker in assignment.children:
+            child_assignment = child_worker.assignment()
+            if not child_worker.healthy or child_assignment.task is None:
                 continue
+            child_index = child_worker.child_index_for(source_task)
+            if child_index is not None:
+                trusted_children[child_index] = child_assignment.task
+        return source_task.clone_for_recovery(trusted_children)
 
-            child_index = self._child_index(source_task, child_worker)
-            if child_index is None:
-                continue
-
-            trusted_child = child_worker.task
-            replacement_child = trusted_child._new_attempt()
-            replacement_child._copy_completed_state_from(trusted_child)
-            replacement.task_children[child_index] = replacement_child
-
-            if (
-                replacement_child.task_done
-                and replacement_child.completion_status == "completed"
-            ):
-                child_value = replacement_child.return_value
-                if child_value is None:
-                    child_value = replacement_child.subprocess_value
-                if child_value is not None:
-                    replacement.captured_list[child_index] = int(child_value)
-
-        replacement._refresh_subtasks_done()
-        return replacement
-
-    # Move a task and its child-worker assignments to a healthy worker.
-    def _transfer_task(self, source: Worker, target: Worker) -> None:
-        parent_worker = source.parent_worker
-        source_task = source.task
+    def _transfer_task(self, source: Worker, target: Worker) -> bool:
+        source_assignment = source.assignment()
+        source_task = source_assignment.task
         if source_task is None:
-            return
+            return False
         replacement_task = self._isolated_task_for_worker(source)
-        source_task_index = source.task_index
+        target_subtree = self._descendants(target) | {id(target)}
         child_bindings: list[tuple[Worker, int]] = []
-        for child_worker in source.child_workers:
-            if not child_worker.healthy or child_worker.task is None:
+        for child_worker in source_assignment.children:
+            child_assignment = child_worker.assignment()
+            if (
+                id(child_worker) in target_subtree
+                or not child_worker.healthy
+                or child_assignment.task is None
+            ):
                 continue
-            child_index = self._child_index(source_task, child_worker)
+            child_index = child_worker.child_index_for(source_task)
             if child_index is not None:
                 child_bindings.append((child_worker, child_index))
 
+        parent_worker = source_assignment.parent
         if parent_worker is not None:
-            source._replace_parent_task_reference(source_task, replacement_task)
+            parent_worker.replace_child_task(source_task, replacement_task)
+            parent_worker.replace_child_worker(source, target)
 
-        target_parent = target.parent_worker
+        target_assignment = target.assignment()
+        target_parent = target_assignment.parent
         if target_parent is not None:
-            target_parent.child_workers = [
-                worker for worker in target_parent.child_workers if worker is not target
-            ]
-        target.parent_worker = None
+            target_parent.remove_child_worker(target)
 
-        if parent_worker is not None:
-            parent_worker.child_workers = [
-                target if worker is source else worker
-                for worker in parent_worker.child_workers
-            ]
-        source.parent_worker = None
-
-        source._abort_worker_tree()
-        source.task = None
-        source.task_index = None
-        source.status["program_state"] = "unavailable"
-        source.status["task_state"] = "unavailable"
-        source.status["message"] = (
-            f"{source.role} worker unavailable after health failure"
+        source_task.abort()
+        source.release_assignment()
+        source.mark_unavailable(
+            f"{source.role} worker unavailable after assignment failure"
         )
 
-        if target.task is not None or target.child_workers:
-            target._abort_worker_tree()
-        target.parent_worker = parent_worker
-        target.task = replacement_task
-        target.task_index = source_task_index
-        target.child_workers = [worker for worker, _ in child_bindings]
-        for child_worker, child_index in child_bindings:
-            child_worker.parent_worker = target
-            child_worker.task_index = child_index
-            child_worker.task = replacement_task.task_children[child_index]
-            child_worker.last_report = None
-            child_worker.status["return_code"] = None
-            child_worker.status["finished_at"] = None
-            child_worker.status["message"] = (
-                f"{child_worker.role} worker received {child_worker.task.name}"
+        try:
+            target.accept_assignment(
+                replacement_task,
+                parent=parent_worker,
+                task_index=source_assignment.task_index,
+                children=child_bindings,
+                workers=self.workers,
             )
-        target.last_report = None
-        target.status["program_state"] = "running"
-        target.status["task_state"] = "running"
-        target.status["return_code"] = None
-        target.status["finished_at"] = None
-        target.status["message"] = (
-            f"{target.role} worker received {replacement_task.name}"
-        )
-        target.start(replacement_task, workers=self.workers)
-        for child_worker, _ in child_bindings:
-            child_worker.start(child_worker.task, workers=self.workers)
-
+        except Exception as exc:  # noqa: BLE001 - transaction compensation boundary
+            retained_children = {
+                index: child
+                for index, child in enumerate(replacement_task.task_children)
+                if child.task_done and child.completion_status == "completed"
+            }
+            queued_task = replacement_task.clone_for_recovery(retained_children)
+            target.abort_assignment_tree()
+            target.release_assignment()
+            target.mark_unavailable(
+                f"{target.role} worker failed while accepting an assignment"
+            )
+            source.hold_assignment(
+                queued_task,
+                parent=parent_worker,
+                task_index=source_assignment.task_index,
+                children=[],
+            )
+            if parent_worker is not None:
+                parent_worker.replace_child_task(replacement_task, queued_task)
+                parent_worker.replace_child_worker(target, source)
+            if self.task is source_task:
+                self.task = queued_task
+            self.trace.record(
+                "worker",
+                "task transfer failed; assignment remains queued",
+                worker=source.index,
+                replacement_worker=target.index,
+                task=source_task.name,
+                error=type(exc).__name__,
+            )
+            return False
         if self.task is source_task:
             self.task = replacement_task
+        self.trace.record(
+            "worker",
+            "task transferred after worker failure",
+            worker=source.index,
+            replacement_worker=target.index,
+            task=source_task.name,
+        )
+        return True
 
-    # Return the current combined status object.
+    def _recover_pending_assignments(self) -> None:
+        for source in list(self.pending_recoveries):
+            if source.assignment().task is None:
+                self.pending_recoveries.remove(source)
+                continue
+            target = self._replacement_worker(source)
+            if target is None:
+                continue
+            if self._transfer_task(source, target):
+                self.pending_recoveries.remove(source)
+
     def get_status(self) -> dict[str, Any]:
         if self.started:
             return self.poll()["status"]
         return dict(self.status)
 
-    # Abort a task and replace any live worker assignment that owns it.
     def abort_task(self, task: Task | None) -> Task | None:
         if task is None:
             return None
-
         for worker in self.workers:
-            if worker.task is task:
-                return worker._fallback_to_parent_worker(workers=self.workers)
+            assignment = worker.assignment()
+            if assignment.task is not task:
+                continue
+            replacement = task.new_attempt() if task.task_children else None
+            worker.abort_assignment_tree()
+            if replacement is not None:
+                if assignment.parent is not None:
+                    assignment.parent.replace_child_task(task, replacement)
+                worker.bind_assignment(
+                    replacement,
+                    parent=assignment.parent,
+                    task_index=assignment.task_index,
+                )
+                worker.start(replacement, workers=self.workers)
+                if self.task is task:
+                    self.task = replacement
+            return replacement
         return task.abort_task()
 
-    # Create a worker wrapper for a given role and index.
-    def create_worker(self, role: str, index: int, task: Task | None = None) -> Worker:
-        return Worker(role=role, index=index, task=task, trace=self.trace)
+    def create_worker(
+        self,
+        role: str,
+        index: int,
+        task: Task | None = None,
+        prunner: Prunner | None = None,
+    ) -> Worker:
+        return Worker(
+            role=role,
+            index=index,
+            task=task,
+            trace=self.trace,
+            prunner=prunner or Prunner(),
+        )
 
-    # Return the live root task currently owned by worker 0.
+    def register_worker(self, worker: Worker) -> None:
+        if any(candidate.index == worker.index for candidate in self.workers):
+            raise ValueError(f"worker index {worker.index} is already registered")
+        worker.trace = self.trace
+        self.workers.append(worker)
+        self.worker_count = len(self.workers)
+        self.status["child_states"][worker.index] = "idle"
+
     def _root_task(self) -> Task:
-        return self.workers[0].task if self.workers[0].task is not None else self.task
+        root_assignment = self.workers[0].assignment().task
+        return root_assignment if root_assignment is not None else self.task
 
-    # Clarify trace usage by recording a structured program-level message.
     def _trace_program(self, message: str, **details: Any) -> None:
         self.trace.program(message, **details)
 
-    # Report whether the task tree and worker subprocesses have all reached
-    # terminal states.
     def is_finished(self) -> bool:
-        if any(worker.process is not None for worker in self.workers):
+        if self.pending_recoveries:
+            return False
+        if any(worker.has_active_process() for worker in self.workers):
             return False
         return self._task_tree_finished(self._root_task())
 
@@ -301,11 +320,9 @@ class Main:
             self._task_tree_finished(child) for child in task.task_children
         )
 
-    # Start the root worker and return the first snapshot.
     def start(self) -> dict[str, Any]:
         if self.started:
             return self.poll()
-
         self.status["program_state"] = "running"
         self.status["task_state"] = "running"
         self.status["message"] = "main orchestration started"
@@ -315,7 +332,6 @@ class Main:
         self._trace_program(
             "main run started", worker_count=self.worker_count, task=self.task.name
         )
-
         self.workers[0].start(self.task, workers=self.workers)
         self.status["parent_state"] = "running"
         for worker in self.workers[1:]:
@@ -323,29 +339,17 @@ class Main:
         self.started = True
         return self.poll()
 
-    # Poll every worker and optionally request health for one assigned task.
-    def poll(self, task: Task | None = None) -> dict[str, Any]:
-        self._monitor_workers(task)
-
-        if self.started:
-            for worker in self.workers:
-                worker.poll(workers=self.workers)
-
-        root_task = self._root_task()
-        self.task = root_task
-        worker_snapshots = [worker.snapshot() for worker in self.workers]
-        child_states = {
-            worker.index: (
-                "idle" if worker.task is None else worker.task.completion_status
+    def _refresh_status(self, root_task: Task, finished: bool) -> int | None:
+        child_states: dict[int, TaskState] = {}
+        for worker in self.workers[1:]:
+            child_task = worker.assignment().task
+            child_states[worker.index] = (
+                "idle" if child_task is None else child_task.completion_status
             )
-            for worker in self.workers[1:]
-        }
         root_status = root_task.completion_status
         return_code = self._combined_return_code(root_task)
-        finished = self.is_finished() if self.started else False
-
         self.status["parent_state"] = (
-            root_status if self.workers[0].task is not None else "idle"
+            root_status if self.workers[0].assignment().task is not None else "idle"
         )
         self.status["child_states"] = child_states
         self.status["task_state"] = (
@@ -356,15 +360,30 @@ class Main:
         )
         self.status["return_code"] = return_code if finished else None
         self.status["return_value"] = root_task.return_value
+        return return_code
+
+    def poll(self, task: Task | None = None) -> dict[str, Any]:
+        self._monitor_workers(task)
+        self._recover_pending_assignments()
+        if self.started:
+            for worker in self.workers:
+                if worker.healthy:
+                    worker.poll(workers=self.workers)
+        self._collect_execution_failures()
+        self._recover_pending_assignments()
+
+        root_task = self._root_task()
+        self.task = root_task
+        worker_snapshots = [worker.snapshot() for worker in self.workers]
+        finished = self.is_finished() if self.started else False
+        return_code = self._refresh_status(root_task, finished)
         if finished and self.status["finished_at"] is None:
             self.status["message"] = "main orchestration finished"
             self.status["finished_at"] = self.trace.record(
                 "program", "main orchestration finished"
             )["timestamp"]
             self._trace_program("main run finished", return_code=return_code)
-            if self.trace.path is not None:
-                self.trace.dump()
-
+            self.trace.persist_if_configured()
         self.trace.record(
             "poll", "main poll", finished=finished, return_code=return_code
         )
@@ -377,7 +396,7 @@ class Main:
             "return_value": root_task.return_value,
             "finished": finished,
             "status": dict(self.status),
-            "trace": self.trace.to_dict(),
+            "trace": self.trace.snapshot(),
         }
 
     def _combined_return_code(self, task: Task) -> int | None:
@@ -392,14 +411,8 @@ class Main:
             return_codes.extend(self._task_return_codes(child))
         return return_codes
 
-    # Wait is a convenience wrapper for demos/tests; callers can use poll()
-    # directly instead.
     def wait(self, poll_interval: float = 0.01, timeout: float = 5.0) -> dict[str, Any]:
-        if not self.started:
-            snapshot = self.start()
-        else:
-            snapshot = self.poll()
-
+        snapshot = self.start() if not self.started else self.poll()
         deadline = time.monotonic() + timeout
         while not snapshot["finished"]:
             if time.monotonic() > deadline:
@@ -412,6 +425,5 @@ class Main:
         snapshot["timed_out"] = False
         return snapshot
 
-    # Run the worker tree to completion for callers.
     def run(self) -> dict[str, Any]:
         return self.wait()
