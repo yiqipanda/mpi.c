@@ -50,6 +50,7 @@ class Task:
             return
         not_done = True
         while not_done:
+            print(f"[INFO] waiting for assigned program: {self.assigned_program_name} children to finish")
             not_done = False
             for subtask in self.list_subtasks:
                 if not subtask.completed:
