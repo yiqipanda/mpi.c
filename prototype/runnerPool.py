@@ -1,10 +1,11 @@
-from dataclasses import dataclass, field
-from typing import Optional
-import uuid
-from runner import Runner
 import asyncio
-import time
+import uuid
+from dataclasses import dataclass, field
 
+from runner import Runner
+
+
+#RunnerPool monitors runners
 @dataclass
 class RunnerPool:
     list_runners: list[Runner] = field(default_factory=list)
@@ -15,7 +16,7 @@ class RunnerPool:
         default_factory=asyncio.Queue
     )
     
-    
+    #puts healthy stale ones back online
     async def poll_stales(self, interval: float = 1):
         while True:
             runner = await self.stale_runners.get()
@@ -36,7 +37,7 @@ class RunnerPool:
             await asyncio.sleep(interval)
 
 
-
+    #adds healthy runner to pool
     def add_runner(self, n: int = 4):
         for _ in range(n):
             runner = Runner(id=uuid.uuid4())
@@ -48,13 +49,20 @@ class RunnerPool:
             )
     
     
-
-    async def get_runner(self, timeout: Optional[int] = None):
+    #gets runner from healthy pool
+    async def get_runner(self, timeout: int | None = None):
         print("[INFO] runner pool: waiting to hand off an available runner")
-        runner = await self.free_runners.get() 
+        if timeout is None:
+            runner = await self.free_runners.get()
+        else:
+            runner = await asyncio.wait_for(
+                self.free_runners.get(),
+                timeout=timeout,
+            )
         print(f"[INFO] runner pool: handed off runner: {runner.id}")
         return runner
 
+    #puts a runner in either stale or healthy pool
     async def put_runner(self, runner):
         if runner in self.list_runners:
             if runner.get_health():
