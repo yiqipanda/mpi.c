@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1120"
+     viewBox="0 0 1500 1120" role="img"
+     aria-labelledby="diagram-title diagram-description">
+  <title id="diagram-title">Resolution Engine component diagram</title>
+  <desc id="diagram-description">Main-computer control components and other-computer worker processes, including their responsibilities and interactions.</desc>
+  <defs>
+    <marker id="call-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4"
+            orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#293444"/>
+    </marker>
+    <marker id="return-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4"
+            orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 8 4 L 0 8 z" fill="#687486"/>
+    </marker>
+  </defs>
+
+  <rect width="1500" height="1120" fill="#f4f4f4"/>
+  <rect width="1500" height="150" fill="#293444"/>
+  <text x="52" y="66" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#ffffff">Resolution Engine</text>
+  <text x="52" y="102" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="400" fill="#bdc7d4">Component and deployment domains</text>
+  <text x="1448" y="66" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#55c7ca">CONTROL PLANE  ↔  EVALUATION PLANE</text>
+
+  <rect x="40" y="184" width="680" height="866" rx="22" fill="#ffffff" stroke="#9ca9b8" stroke-width="2"/>
+<path d="M 62 184 H 698 Q 720 184 720 206 V 258 H 40 V 206 Q 40 184 62 184 Z" fill="#293444"/>
+<text x="68" y="218" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">MAIN COMPUTER</text>
+<text x="68" y="242" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#c4ceda">Control plane • owns the main program</text>
+<rect x="780" y="184" width="680" height="866" rx="22" fill="#ffffff" stroke="#9ca9b8" stroke-width="2"/>
+<path d="M 802 184 H 1438 Q 1460 184 1460 206 V 258 H 780 V 206 Q 780 184 802 184 Z" fill="#293444"/>
+<text x="808" y="218" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">OTHER COMPUTERS</text>
+<text x="808" y="242" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#c4ceda">Evaluation plane • one or more worker computers</text>
+<rect x="82" y="284" width="596" height="126" rx="14" fill="#fbfbfc" stroke="#4f9fd7" stroke-width="2"/>
+<rect x="82" y="284" width="12" height="126" rx="6" fill="#4f9fd7"/>
+<text x="112" y="315" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Main Program</text>
+<text x="656" y="314" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#4f9fd7">APPLICATION</text>
+<circle cx="114" cy="340" r="3" fill="#4f9fd7"/>
+<text x="128" y="345" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Calls Manager.execute(Function_name, arguments)</text>
+<circle cx="114" cy="367" r="3" fill="#4f9fd7"/>
+<text x="128" y="372" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Receives a Coroutine and later reads its value</text>
+<rect x="82" y="464" width="596" height="198" rx="14" fill="#fbfbfc" stroke="#e8247f" stroke-width="2"/>
+<rect x="82" y="464" width="12" height="198" rx="6" fill="#e8247f"/>
+<text x="112" y="495" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Manager</text>
+<text x="656" y="494" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#e8247f">CLASS / API</text>
+<circle cx="114" cy="520" r="3" fill="#e8247f"/>
+<text x="128" y="525" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Partitions arguments using Functions metadata</text>
+<circle cx="114" cy="547" r="3" fill="#e8247f"/>
+<text x="128" y="552" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Assigns partitions to available Engines</text>
+<circle cx="114" cy="574" r="3" fill="#e8247f"/>
+<text x="128" y="579" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Collects results and orchestrates one result</text>
+<circle cx="114" cy="601" r="3" fill="#e8247f"/>
+<text x="128" y="606" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Never evaluates a partition itself</text>
+<rect x="82" y="732" width="596" height="270" rx="17" fill="#f7fbfd" stroke="#4f9fd7" stroke-width="2" stroke-dasharray="7 7"/>
+<rect x="100" y="718" width="178" height="28" rx="14" fill="#4f9fd7"/>
+<text x="189" y="737" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#ffffff">RUNTIME PROCESS</text>
+<text x="658" y="765" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#687486">same structure on every computer</text>
+<rect x="110" y="780" width="250" height="174" rx="14" fill="#fbfbfc" stroke="#5956c9" stroke-width="2"/>
+<rect x="110" y="780" width="12" height="174" rx="6" fill="#5956c9"/>
+<text x="140" y="811" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Engine</text>
+<text x="338" y="810" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#5956c9">CLASS</text>
+<circle cx="142" cy="836" r="3" fill="#5956c9"/>
+<text x="156" y="841" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Waits for evaluation orders</text>
+<circle cx="142" cy="863" r="3" fill="#5956c9"/>
+<text x="156" y="868" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Runs registered func(args)</text>
+<circle cx="142" cy="890" r="3" fill="#5956c9"/>
+<text x="156" y="895" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Returns partition result</text>
+<rect x="400" y="780" width="250" height="174" rx="14" fill="#fbfbfc" stroke="#3db9bd" stroke-width="2"/>
+<rect x="400" y="780" width="12" height="174" rx="6" fill="#3db9bd"/>
+<text x="430" y="811" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Functions</text>
+<text x="628" y="810" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#3db9bd">CLASS</text>
+<circle cx="432" cy="836" r="3" fill="#3db9bd"/>
+<text x="446" y="841" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Registered functions</text>
+<circle cx="432" cy="863" r="3" fill="#3db9bd"/>
+<text x="446" y="868" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Partition metadata</text>
+<circle cx="432" cy="890" r="3" fill="#3db9bd"/>
+<text x="446" y="895" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Orchestration rules</text>
+<path d="M 360 866 H 400" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="324.0" y="851" width="112" height="30" rx="15" fill="#293444"/>
+<text x="380" y="871" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">func(args)</text>
+<rect x="822" y="330" width="596" height="270" rx="17" fill="#f7fbfd" stroke="#4f9fd7" stroke-width="2" stroke-dasharray="7 7"/>
+<rect x="840" y="316" width="178" height="28" rx="14" fill="#4f9fd7"/>
+<text x="929" y="335" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#ffffff">RUNTIME PROCESS</text>
+<text x="1398" y="363" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#687486">identical copy on each other computer • 1..N</text>
+<rect x="850" y="378" width="250" height="174" rx="14" fill="#fbfbfc" stroke="#5956c9" stroke-width="2"/>
+<rect x="850" y="378" width="12" height="174" rx="6" fill="#5956c9"/>
+<text x="880" y="409" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Engine</text>
+<text x="1078" y="408" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#5956c9">CLASS</text>
+<circle cx="882" cy="434" r="3" fill="#5956c9"/>
+<text x="896" y="439" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Waits for evaluation orders</text>
+<circle cx="882" cy="461" r="3" fill="#5956c9"/>
+<text x="896" y="466" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Runs registered func(args)</text>
+<circle cx="882" cy="488" r="3" fill="#5956c9"/>
+<text x="896" y="493" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Returns partition result</text>
+<rect x="1140" y="378" width="250" height="174" rx="14" fill="#fbfbfc" stroke="#3db9bd" stroke-width="2"/>
+<rect x="1140" y="378" width="12" height="174" rx="6" fill="#3db9bd"/>
+<text x="1170" y="409" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Functions</text>
+<text x="1368" y="408" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#3db9bd">CLASS</text>
+<circle cx="1172" cy="434" r="3" fill="#3db9bd"/>
+<text x="1186" y="439" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Registered functions</text>
+<circle cx="1172" cy="461" r="3" fill="#3db9bd"/>
+<text x="1186" y="466" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Partition metadata</text>
+<circle cx="1172" cy="488" r="3" fill="#3db9bd"/>
+<text x="1186" y="493" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Orchestration rules</text>
+<path d="M 1100 464 H 1140" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="1064.0" y="449" width="112" height="30" rx="15" fill="#293444"/>
+<text x="1120" y="469" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">func(args)</text>
+<rect x="862" y="684" width="516" height="184" rx="14" fill="#fbfbfc" stroke="#4f9fd7" stroke-width="2"/>
+<rect x="862" y="684" width="12" height="184" rx="6" fill="#4f9fd7"/>
+<text x="892" y="715" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="700" fill="#293444">Worker Domain</text>
+<text x="1356" y="714" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#4f9fd7">DEPLOYMENT</text>
+<circle cx="894" cy="740" r="3" fill="#4f9fd7"/>
+<text x="908" y="745" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Every computer hosts the identical runtime process</text>
+<circle cx="894" cy="767" r="3" fill="#4f9fd7"/>
+<text x="908" y="772" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Available Engines receive partitions from Manager</text>
+<circle cx="894" cy="794" r="3" fill="#4f9fd7"/>
+<text x="908" y="799" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Results travel back to Manager for orchestration</text>
+<circle cx="894" cy="821" r="3" fill="#4f9fd7"/>
+<text x="908" y="826" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#687486">Adding computers adds evaluation capacity</text>
+<path d="M 380 410 V 464" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="285.0" y="422" width="190" height="30" rx="15" fill="#293444"/>
+<text x="380" y="442" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">EXECUTE → Coroutine</text>
+<path d="M 238 662 V 780" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="158.0" y="675" width="160" height="30" rx="15" fill="#293444"/>
+<text x="238" y="695" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">available Engine</text>
+<path d="M 520 662 V 780" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="425.0" y="675" width="190" height="30" rx="15" fill="#293444"/>
+<text x="520" y="695" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">partition + orchestrate</text>
+<path d="M 678 510 C 744 510, 790 426, 850 426" fill="none" stroke="#293444" stroke-width="2.2" marker-end="url(#call-arrow)"/>
+<rect x="680.0" y="429" width="180" height="30" rx="15" fill="#293444"/>
+<text x="770" y="449" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">evaluation order</text>
+<path d="M 850 522 C 790 522, 744 604, 678 604" fill="none" stroke="#687486" stroke-width="2.2" stroke-dasharray="4 7" marker-end="url(#return-arrow)"/>
+<rect x="685.0" y="553" width="170" height="30" rx="15" fill="#293444"/>
+<text x="770" y="573" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#ffffff">partition result</text>
+
+  <text x="1448" y="1091" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#87909c">Generated from info.md by ChatGPT; Author Reviewed</text>
+</svg>

@@ -15,7 +15,7 @@ build-ninja/
 logs/*.log
 .pyc
 __pycache__
-
+resolution_engine/
 
 # CLion
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
