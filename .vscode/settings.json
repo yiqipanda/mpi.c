@@ -1,4 +1,6 @@
 {
     "makefile.configureOnOpen": true,
-    "accessibility.voice.keywordActivation": "inlineChat"
+    "accessibility.voice.keywordActivation": "inlineChat",
+    "cmake.sourceDirectory": "/Users/yigit/Desktop/mpi.c/deprecated/old_c_codes",
+    "cmake.autoDetectSourceDirectory": false
 }
