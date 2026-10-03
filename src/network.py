@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import socket
 import struct
-from typing import Any
+from typing import Any, Final
 
 
 MAX_MESSAGE_BYTES = 16 * 1024 * 1024
@@ -14,12 +15,11 @@ MAX_MESSAGE_BYTES = 16 * 1024 * 1024
 class ProtocolError(RuntimeError):
     """Raised when a TCP message does not follow the expected format."""
 
-
+@dataclass
 class Network:
-    """Create TCP connections and exchange length-prefixed JSON objects."""
 
-    def __init__(self, owner_id: str = "app") -> None:
-        self.owner_id = owner_id
+    """Create TCP connections and exchange length-prefixed JSON objects."""
+    owner_id: Final[str] = "app"
 
     def listen(self, host: str, port: int) -> socket.socket:
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

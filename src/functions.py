@@ -56,19 +56,19 @@ class Sum(Function):
 
         z = 0
         for e in self.params:
-            z+=e
+            z += e
             time.sleep(3)
-        self.result = sum(self.params)
+        self.result = z
         return True
 
     def orchestrate(self, partitions: Sequence[Function]) -> bool:
-        if result is not None:
+        if self.result is not None:
             return False
         if len(partitions) != 2:
             raise ValueError("Sum.orchestrate() requires exactly two partitions")
         if any(partition.result is None for partition in partitions):
             return False
-        
+
         self.result = sum(partition.result for partition in partitions)
         return True
 

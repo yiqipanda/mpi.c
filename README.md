@@ -95,17 +95,17 @@ speedup.
 
 ## CLI reference
 
-| Command | Purpose |
-| --- | --- |
-| `create -p NUMBER` | Start the requested number of engine subprocesses. |
+| Command                                      | Purpose                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------- |
+| `create -p NUMBER`                         | Start the requested number of engine subprocesses.                  |
 | `create -fn CLASS_NAME -params PARAMETERS` | Create a function from a Python literal such as a list of integers. |
-| `partition -id OBJECT_ID` | Split a function into two child function objects. |
-| `transfer -id OBJECT_ID PROCESS_ID` | Serialize an object and assign it to an engine. |
-| `eval -id OBJECT_ID` | Evaluate a transferred object on its assigned engine. |
-| `orchestrate -id OBJECT_ID` | Combine the evaluated children of a partitioned object. |
-| `list processes` | Show engine health, assigned objects, and evaluation state. |
-| `help` | Print the command list. |
-| `exit` or `quit` | Close the engines and exit. |
+| `partition -id OBJECT_ID`                  | Split a function into two child function objects.                   |
+| `transfer -id OBJECT_ID PROCESS_ID`        | Serialize an object and assign it to an engine.                     |
+| `eval -id OBJECT_ID`                       | Evaluate a transferred object on its assigned engine.               |
+| `orchestrate -id OBJECT_ID`                | Combine the evaluated children of a partitioned object.             |
+| `list processes`                           | Show engine health, assigned objects, and evaluation state.         |
+| `help`                                     | Print the command list.                                             |
+| `exit` or `quit`                         | Close the engines and exit.                                         |
 
 Invalid commands and recoverable operation failures are printed as warnings;
 the shell remains open for the next command.
@@ -169,6 +169,7 @@ payloads and messages larger than 16 MiB.
 ├── deprecated/                  Archived C/C++ and Python implementations
 ├── reports/                     Historical test reports
 └── agents/                      Repository-specific agent role notes
+└── temp_src/					 Sandbox environment for understanding src/
 ```
 
 ## Testing

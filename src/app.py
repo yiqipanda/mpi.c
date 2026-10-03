@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import sys
 from threading import RLock
-from typing import Any, ClassVar, TextIO
+from typing import Any, TextIO
 import uuid
 
 if __package__ in (None, ""):
@@ -36,50 +36,38 @@ HELP = """Commands:
   exit
 """
 
-
+#! We don't have to store partition_children separate from partitions if we treat them as equals and let partitions store their child_part_ids instead
+#! We don't have to worry about how many times something is partitioned at all.
 @dataclass
 class DemoSystem:
-    """Singleton demo state coordinating local objects and TCP engines."""
+    """Demo state coordinating local objects and TCP engines."""
 
     network: Network = field(default_factory=Network, repr=False)
     processes: dict[str, Engine] = field(default_factory=dict)
     objects: dict[str, Function] = field(default_factory=dict)
     partitions: dict[str, tuple[str, str]] = field(default_factory=dict)
     assignments: dict[str, str] = field(default_factory=dict)
-    _partition_children: set[str] = field(default_factory=set, repr=False)
-    _used_ids: set[str] = field(default_factory=set, repr=False)
-    _state_lock: Any = field(default_factory=RLock, repr=False)
-    
-    _instance: ClassVar["DemoSystem | None"] = None
+    partition_children: set[str] = field(default_factory=set, repr=False)
+    used_ids: set[str] = field(default_factory=set, repr=False)
+    state_lock: Any = field(default_factory=RLock, repr=False)
 
-    def __post_init__(self) -> None:
-        if type(self)._instance is not None:
-            raise DemoError("only one DemoSystem can exist at a time")
-        type(self)._instance = self
-
-    @classmethod
-    def instance(cls) -> "DemoSystem":
-        """Return the session's single static DemoSystem instance."""
-
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
-
-    def _new_id(self) -> str:
-        while True:
+    def new_id(self) -> str:
+        for _ in range(0,10):
             candidate = uuid.uuid4().hex[:4]
-            if candidate not in self._used_ids:
-                self._used_ids.add(candidate)
+            if candidate not in self.used_ids:
+                self.used_ids.add(candidate)
                 return candidate
+        raise DemoError("could not allocate a unique id")
 
+
+    #! Right now we abstract other computers as child processes, in the future there are other protocols on binding. This method is temporary.
     def create_processes(self, count: int) -> list[str]:
         if count < 1:
             raise DemoError("process count must be at least 1")
-
         process_ids: list[str] = []
         try:
             for _ in range(count):
-                process_id = self._new_id()
+                process_id = self.new_id()
                 self.processes[process_id] = Engine(
                     process_id, network=self.network
                 )
@@ -87,12 +75,14 @@ class DemoSystem:
         except Exception as exc:
             for process_id in process_ids:
                 self.processes.pop(process_id).close()
-                self._used_ids.discard(process_id)
+                self.used_ids.discard(process_id)
             raise DemoError(f"could not create process: {exc}") from exc
         return process_ids
 
+
+    #? It's unclear why we use state locks since we won't use child processes in future.
     def create_function(self, class_name: str, params: Any) -> str:
-        self._state_lock.acquire()
+        self.state_lock.acquire()
         try:
             module = importlib.import_module("src.functions")
             function_class = getattr(module, class_name)
@@ -105,6 +95,7 @@ class DemoSystem:
                     f"{class_name} does not implement the Function contract"
                 )
             function = function_class(params=params)
+        #! We did not include function object initialization errors.
         except (ImportError, AttributeError) as exc:
             raise DemoError(f"unknown function class: {class_name}") from exc
         except DemoError:
@@ -112,17 +103,19 @@ class DemoSystem:
         except Exception as exc:
             raise DemoError(f"could not create {class_name}: {exc}") from exc
         else:
-            object_id = self._new_id()
+            object_id = self.new_id()
             self.objects[object_id] = function
             return object_id
         finally:
-            self._state_lock.release()
+            self.state_lock.release()
 
+
+    #! This is not necessary. We not only 'check' but also create partition objects, it can be done fairly easily inside partition method.
     def check_partition(self, object_id: str) -> tuple[Function, Function]:
         """Run and validate the complete one-time partition contract."""
 
-        function = self._object(object_id)
-        if object_id in self.partitions or object_id in self._partition_children:
+        function = self.object(object_id)
+        if object_id in self.partitions or object_id in self.partition_children:
             raise DemoError(f"object {object_id} cannot be partitioned more than once")
         try:
             partitions = function.partition()
@@ -134,17 +127,21 @@ class DemoSystem:
             raise DemoError("partition() returned an object without the Function contract")
         return partitions[0], partitions[1]
 
+
+    #!Cleanly written.
     def partition(self, object_id: str) -> tuple[str, str]:
         left, right = self.check_partition(object_id)
-        left_id, right_id = self._new_id(), self._new_id()
+        left_id, right_id = self.new_id(), self.new_id()
         self.objects[left_id], self.objects[right_id] = left, right
         self.partitions[object_id] = (left_id, right_id)
-        self._partition_children.update((left_id, right_id))
+        self.partition_children.update((left_id, right_id))
         return left_id, right_id
 
+
+    #!Cleanly written.
     def transfer(self, object_id: str, process_id: str) -> None:
-        function = self._object(object_id)
-        engine = self._process(process_id)
+        function = self.object(object_id)
+        engine = self.process(process_id)
         try:
             engine.transfer(object_id, function)
         except EngineError as exc:
@@ -152,22 +149,25 @@ class DemoSystem:
         else:
             self.assignments[object_id] = process_id
 
-    # Future: objects may be reassigned intermittently between processes.
+
+
+    #! Future: objects may be reassigned intermittently.
     def evaluate(self, object_id: str) -> Any:
-        function = self._object(object_id)
+        function = self.object(object_id)
         process_id = self.assignments.get(object_id)
         if process_id is None:
             raise DemoError(f"object {object_id} has not been transferred to a process")
         try:
-            result = self._process(process_id).evaluate(object_id)
+            result = self.process(process_id).evaluate(object_id)
         except EngineError as exc:
             raise DemoError(f"evaluation failed: {exc}") from exc
-        function.result = result
-        return result
+        else:
+            function.result = result
+            return result
 
-    # Future: objects may be moved to another process after a process failure.
+    #! Future: objects may be moved to another place so we have to clarify the procedures or abstractions as to how it works.
     def orchestrate(self, object_id: str) -> Any:
-        function = self._object(object_id)
+        function = self.object(object_id)
         partition_ids = self.partitions.get(object_id)
         if partition_ids is None:
             raise DemoError(f"object {object_id} has not been partitioned")
@@ -197,17 +197,20 @@ class DemoSystem:
             for process_id, engine in self.processes.items()
         ]
 
-    def _object(self, object_id: str) -> Function:
+
+    def object(self, object_id: str) -> Function:
         try:
             return self.objects[object_id]
         except KeyError as exc:
             raise DemoError(f"unknown object id: {object_id}") from exc
 
-    def _process(self, process_id: str) -> Engine:
+
+    def process(self, process_id: str) -> Engine:
         try:
             return self.processes[process_id]
         except KeyError as exc:
             raise DemoError(f"unknown process id: {process_id}") from exc
+
 
     def close(self) -> None:
         for engine in list(self.processes.values()):
@@ -219,10 +222,9 @@ class DemoSystem:
         self.objects.clear()
         self.partitions.clear()
         self.assignments.clear()
-        self._partition_children.clear()
-        self._used_ids.clear()
-        if type(self)._instance is self:
-            type(self)._instance = None
+        self.partition_children.clear()
+        self.used_ids.clear()
+
 
 
 def _display(value: Any) -> str:
@@ -296,12 +298,13 @@ def execute_command(system: DemoSystem, line: str, output: TextIO) -> bool:
     raise DemoError(f"unknown directive: {directive}")
 
 
+#! Without relying on external libraries we have constructed CLI for the demo but it needs further examination.
 def run(
     input_stream: TextIO = sys.stdin,
     output: TextIO = sys.stdout,
     error_output: TextIO | None = None,
 ) -> int:
-    system = DemoSystem.instance()
+    system = DemoSystem()
     interactive = input_stream.isatty()
     if error_output is None:
         error_output = sys.stderr

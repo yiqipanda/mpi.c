@@ -112,6 +112,91 @@ def _warning(exc: Exception) -> dict[str, Any]:
     return {"ok": False, "warning": f"{type(exc).__name__}: {exc}"}
 
 
+@dataclass
+class EngineServer:
+    """Worker-side server state and request handling."""
+
+    engine_id: str
+    network: Network
+    objects: dict[str, Function] = field(default_factory=dict)
+
+    def run(self, host: str, port: int) -> int:
+        """Accept one app connection and serve it until shutdown."""
+
+        with self.network.listen(host, port) as listener:
+            connection = self.network.accept(listener, "app")
+            with connection:
+                self._serve_connection(connection)
+        return 0
+
+    def _serve_connection(self, connection: socket.socket) -> None:
+        while self._process_next_request(connection):
+            pass
+
+    def _process_next_request(self, connection: socket.socket) -> bool:
+        try:
+            request = self.network.receive(connection, "app")
+        except EOFError:
+            return False
+        except (ProtocolError, ValueError) as exc:
+            response, should_continue = _warning(exc), True
+        else:
+            response, should_continue = self._handle_request(request)
+
+        self.network.send(connection, response, "app")
+        return should_continue
+
+    def _handle_request(
+        self,
+        request: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        try:
+            return self._dispatch_request(request)
+        except Exception as exc:
+            return _warning(exc), True
+
+    def _dispatch_request(
+        self,
+        request: dict[str, Any],
+    ) -> tuple[dict[str, Any], bool]:
+        command = request.get("command")
+        if command == "transfer":
+            return self._handle_transfer(request), True
+        if command == "eval":
+            return self._handle_evaluation(request), True
+        if command == "shutdown":
+            return self._handle_shutdown()
+        raise ValueError(f"unknown engine command: {command}")
+
+    def _handle_transfer(self, request: dict[str, Any]) -> dict[str, Any]:
+        object_id = request["object_id"]
+        if not isinstance(object_id, str):
+            raise TypeError("object_id must be a string")
+
+        function = deserialize_function(request["function"])
+        self.objects[object_id] = function
+        return {"ok": True, "engine_id": self.engine_id}
+
+    def _handle_evaluation(self, request: dict[str, Any]) -> dict[str, Any]:
+        object_id = request["object_id"]
+        if object_id not in self.objects:
+            raise KeyError(
+                f"object {object_id!r} is not assigned to this process"
+            )
+
+        function = self.objects[object_id]
+        if function.eval() is not True:
+            raise RuntimeError(f"{type(function).__name__}.eval() reported failure")
+        return {
+            "ok": True,
+            "engine_id": self.engine_id,
+            "function": function.serialize(),
+        }
+
+    def _handle_shutdown(self) -> tuple[dict[str, Any], bool]:
+        return {"ok": True, "engine_id": self.engine_id}, False
+
+
 def serve(
     host: str,
     port: int,
@@ -120,58 +205,8 @@ def serve(
 ) -> int:
     """Run one engine's TCP protocol until its client requests shutdown."""
 
-    network = network or Network(engine_id)
-    objects: dict[str, Function] = {}
-    with network.listen(host, port) as server:
-        connection = network.accept(server, "app")
-
-        with connection:
-            while True:
-                try:
-                    request = network.receive(connection, "app")
-                except EOFError:
-                    return 0
-                except Exception as exc:
-                    network.send(connection, _warning(exc), "app")
-                    continue
-
-                command = request.get("command")
-                if command == "shutdown":
-                    network.send(
-                        connection,
-                        {"ok": True, "engine_id": engine_id},
-                        "app",
-                    )
-                    return 0
-
-                try:
-                    if command == "transfer":
-                        object_id = request["object_id"]
-                        if not isinstance(object_id, str):
-                            raise TypeError("object_id must be a string")
-                        objects[object_id] = deserialize_function(request["function"])
-                        response = {"ok": True, "engine_id": engine_id}
-                    elif command == "eval":
-                        object_id = request["object_id"]
-                        if object_id not in objects:
-                            raise KeyError(
-                                f"object {object_id!r} is not assigned to this process"
-                            )
-                        function = objects[object_id]
-                        if function.eval() is not True:
-                            raise RuntimeError(
-                                f"{type(function).__name__}.eval() reported failure"
-                            )
-                        response = {
-                            "ok": True,
-                            "engine_id": engine_id,
-                            "function": function.serialize(),
-                        }
-                    else:
-                        raise ValueError(f"unknown engine command: {command}")
-                except Exception as exc:
-                    response = _warning(exc)
-                network.send(connection, response, "app")
+    server = EngineServer(engine_id, network or Network(engine_id))
+    return server.run(host, port)
 
 
 @dataclass

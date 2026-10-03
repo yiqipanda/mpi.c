@@ -14,8 +14,7 @@ build-make/
 build-ninja/
 logs/*.log
 .pyc
-__pycache__
-resolution_engine/
+__pycache__/
 
 
 # CLion
