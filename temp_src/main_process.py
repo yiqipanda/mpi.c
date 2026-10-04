@@ -1,72 +1,62 @@
 import socket
 from contextlib import ExitStack
 from message import Message
+from network import MainNetwork
+import functions
+
 
 HOST = "127.0.0.1"
 PORT = 5001
 WORKER_IDS = {1, 2, 3}
 
+"""Main process is where we can use set of operations to distribute workload to other processes with prix fixe protocols.
+Message objects are used in streams, for each connection there exists singular IOStream.
+Registration is both ways with int ids to distinguish, no authentication implemented.
+No fallbacks, test cases, traces implemented as of this build"""
 
-def send_request(stream, worker_id, message):
-    stream.write((message.serialize() + "\n").encode())
-    stream.flush()
-    response = stream.readline()
-    if not response:
-        raise ConnectionError(f"Worker {worker_id} disconnected before replying")
-    reply = Message.deserialize(response.decode())
-    if reply.worker_id != worker_id or reply.request_id != message.request_id:
-        raise RuntimeError(f"Unexpected reply from worker {worker_id}: {reply}")
-    if reply.request_type != "OK":
-        raise RuntimeError(f"Worker {worker_id} rejected request: {reply.parameters}")
-    return reply
-
-
-def register_worker(server, stack, streams):
-    connection, _ = server.accept()
-    stack.enter_context(connection)
-    connection.settimeout(10)
-    stream = stack.enter_context(connection.makefile("rwb"))
-    data = stream.readline()
-    if not data:
-        raise ConnectionError("Worker disconnected before registering")
-    registration = Message.deserialize(data.decode())
-    worker_id = registration.worker_id
-    if registration.request_type != "register" or worker_id not in WORKER_IDS:
-        raise ValueError(f"Invalid worker registration: {registration}")
-    if worker_id in streams:
-        raise ValueError(f"Worker {worker_id} registered twice")
-    streams[worker_id] = stream
-    acknowledgement = Message(worker_id=worker_id, request_type="OK", operation="register")
-    stream.write((acknowledgement.serialize() + "\n").encode())
-    stream.flush()
-
-
-def main():
+def demo() -> None:
+    """Not all network operations are encapsulated under network class to avoid coupling in IO ops"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind((HOST, PORT))
-        server.listen(3)
-        server.settimeout(10)
+        network = MainNetwork(server=server, port=PORT, host=HOST, timeout=30, n_listen=3, worker_ids=WORKER_IDS)
 
+
+        #Initialization of the Function objects and encapsulation of them under Message objects"
+        obj1 = functions.Sum(params=[1, 2, 3, 4])
+        obj2, obj3 = obj1.partition()
+        obj4 = functions.Sum(params=[0])
         sum_operations = {
-            1: Message(request_id=0, request_type="createObject", operation="sum", parameters=[1, 2, 3, 4]),
-            2: Message(request_id=1, request_type="createObject", operation="sum", parameters=[4, 5, 6, 7]),
-            3: Message(request_id=2, request_type="createObject", operation="sum", parameters=[1, 2, 3, 5]),
+            1: Message(request_id=0, request_type="createFunction", operation="create", parameters=[obj4]),
+            2: Message(request_id=1, request_type="createFunction", operation="create", parameters=[obj2]),
+            3: Message(request_id=2, request_type="createFunction", operation="create", parameters=[obj3]),
         }
+
+
+        """ExitStack is used for handling multiple context managers better"""
         with ExitStack() as stack:
-            streams = {}
+
             for _ in WORKER_IDS:
-                register_worker(server, stack, streams)
+                network.register_worker(stack)
     
             for worker_id in sorted(WORKER_IDS):
-                send_request(streams[worker_id], worker_id, sum_operations[worker_id])
+                network.send_request(worker_id=worker_id, message=sum_operations[worker_id])
+
+            results: dict[int, functions.Sum] = {}
             for worker_id in sorted(WORKER_IDS):
-                result_request = sum_operations[worker_id].to_eval_request()
-                if result_request is None:
-                    continue
-                result = send_request(streams[worker_id], worker_id, result_request).parameters[0]
-                print(f"worker {worker_id} result is {result}")
+                result_request = Message(
+                    request_id=sum_operations[worker_id].request_id,
+                    request_type="getFunctionResult",
+                    operation="return",
+                )
+                result = network.send_request(worker_id=worker_id, message=result_request).parameters[0]
+                if not isinstance(result, functions.Sum):
+                    raise TypeError(f"Worker {worker_id} returned an unexpected result")
+                results[worker_id] = result
+                print(f"worker {worker_id} result is {result.result}")
+
+            if not obj1.orchestrate([results[2], results[3]]):
+                raise RuntimeError("Could not combine partition results")
+            print(f"orchestrated result is {obj1.result}")
 
 
 if __name__ == "__main__":
-    main()
+    demo()

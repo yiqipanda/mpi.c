@@ -1,7 +1,12 @@
-
 # Set of Instructions for Agents
 
-If the user asks for an implementation of a Python method, do not begin modifying or writing the method immediately. First, consider whether the method may already be implemented and whether the actual task is simply to determine where it should be called.
+*Current scope: temp_src/ and all of it's contents. execute run.sh  to actually test the system. Input and Output temp_src for now.*
+
+Distinguish what user actually asks for, if they require a method or function look to relevant section and skip otherwise.
+
+## Method & Function Implementations
+
+Do not begin modifying or writing the method immediately. First, consider whether the method may already be implemented and whether the actual task is simply to determine where it should be called.
 
 Before implementation begins, explain the method's expected behavioral impact, where it will be used, what state it may mutate, what external effects it may cause, and any relevant implementation constraints. At this stage, you may inspect existing code and reason about integration points, but you should not yet modify the method or add its implementation.
 

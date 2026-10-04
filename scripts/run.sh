@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/../temp_src/"
 
 python3 main_process.py &
 main_pid=$!
