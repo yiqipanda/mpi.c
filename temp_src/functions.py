@@ -104,16 +104,13 @@ class Sum(Function):
 
         return cls(params=payload["params"], result=payload.get("result"))
 
-"""Expresses the fully implemented Function classes"""
-FUNCTION_CLASSES: dict[str, type[Function]] = {
-    Sum.__name__: Sum,
-}
 
-SERIALIZABLE_CLASSES: dict[str, type[Serializable]] = dict(FUNCTION_CLASSES)
+
 
 
 """To be deleted later, no longer necessary """
 def deserialize_function(payload: Mapping[str, Any]) -> Function:
+    from registered_types import FUNCTION_CLASSES
 
     if not isinstance(payload, Mapping):
         raise TypeError("serialized function must be a mapping")

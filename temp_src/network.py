@@ -33,7 +33,6 @@ class MainNetwork:
         server.settimeout(timeout)
 
 
-    
     def set_stream(self, worker_id: int, stream: BinaryIO) -> None:
         self.streams[worker_id] = stream
 
@@ -60,7 +59,7 @@ class MainNetwork:
         return reply
 
     """Registers other processes to main process table"""
-    def register_worker(self, stack: ExitStack) -> None:
+    def register_worker(self, stack: ExitStack) -> int:
         connection, _ = self.server.accept()
         stack.enter_context(connection)
         connection.settimeout(self.timeout)
@@ -78,6 +77,7 @@ class MainNetwork:
         acknowledgement = Message(worker_id=worker_id, request_type="OK", operation="register")
         stream.write((acknowledgement.serialize() + "\n").encode())
         stream.flush()
+        return worker_id
 
 
 """Helps other_process handle network operations"""
@@ -126,5 +126,3 @@ class otherNetwork:
             or acknowledgement.request_id != registration.request_id
         ):
             raise RuntimeError(f"Registration rejected: {acknowledgement}")
-
-    

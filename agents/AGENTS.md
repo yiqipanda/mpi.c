@@ -1,6 +1,6 @@
 # Set of Instructions for Agents
 
-*Current scope: temp_src/ and all of it's contents. execute run.sh  to actually test the system. Input and Output temp_src for now.*
+*Current scope: temp_src/ & scripts/ and all of it's contents. execute run.sh  to actually test the system.*
 
 Distinguish what user actually asks for, if they require a method or function look to relevant section and skip otherwise.
 

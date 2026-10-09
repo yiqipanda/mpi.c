@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
+from pprint import pformat
 from typing import Any
 
-from functions import SERIALIZABLE_CLASSES, Serializable
+from functions import Serializable
+from registered_types import SERIALIZABLE_CLASSES
 
 
 @dataclass
@@ -12,6 +16,21 @@ class Message:
     parameters: list[Any] = field(default_factory=list)
     worker_id: int = -1
     request_id: int = -1
+
+    def print_message(self) -> None:
+        lines = [
+            f"Message #{self.request_id}",
+            f"  Request type : {self.request_type}",
+            f"  Operation    : {self.operation}",
+            f"  Worker ID    : {self.worker_id}",
+            f"  Parameters ({len(self.parameters)}):",
+        ]
+        for index, value in enumerate(self.parameters):
+            branch = "└─" if index == len(self.parameters) - 1 else "├─"
+            prefix = f"    {branch} [{index}] {type(value).__name__}: "
+            formatted = pformat(value, width=max(20, 88 - len(prefix)), sort_dicts=False)
+            lines.append(prefix + formatted.replace("\n", "\n" + " " * len(prefix)))
+        print("\n".join(lines))
 
     def serialize(self) -> str:
         return json.dumps(
