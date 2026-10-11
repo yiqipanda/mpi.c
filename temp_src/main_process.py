@@ -13,10 +13,10 @@ WORKER_IDS = {1, 2, 3}
 MAIN_LOG = LogBuffer()
 
 def collect_system_logs(network: MainNetwork, main_log: LogBuffer) -> LogBuffer:
+
     """Fetch worker snapshots, acknowledge receipt, and order all system events."""
 
     combined = LogBuffer()
-    combined.merge(main_log.snapshot())
     acknowledgments: list[int] = []
     for worker_id in sorted(network.worker_ids):
         reply = network.send_request(
@@ -46,6 +46,7 @@ def collect_system_logs(network: MainNetwork, main_log: LogBuffer) -> LogBuffer:
         )
         if reply.operation != "flush":
             raise ValueError(f"Worker {worker_id} returned an invalid log acknowledgment")
+    combined.merge(main_log.snapshot())
     return combined
 
 """Main process is where we can use set of operations to distribute workload to other processes with prix fixe protocols.
@@ -60,7 +61,7 @@ def demo() -> None:
     main_log.append(Log(time.time_ns(), "main", main_sequence, "process started"))
     main_sequence += 1
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
-        network = MainNetwork(server=server, port=PORT, host=HOST, timeout=30, n_listen=3, worker_ids=WORKER_IDS)
+        network = MainNetwork(server=server, port=PORT, host=HOST, timeout=30, n_listen=3, worker_ids=WORKER_IDS, log_buffer=main_log)
         main_log.append(Log(time.time_ns(), "main", main_sequence, "listening for worker processes"))
         main_sequence += 1
 
@@ -92,6 +93,10 @@ def demo() -> None:
 
             for _ in WORKER_IDS:
                 worker_id = network.register_worker(stack)
+                main_sequence = max(
+                    (entry.sequence for entry in main_log.logs + (main_log.pending_logs or [])),
+                    default=-1,
+                ) + 1
                 main_log.append(Log(time.time_ns(), "main", main_sequence, f"worker {worker_id} registered"))
                 main_sequence += 1
     

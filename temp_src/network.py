@@ -4,6 +4,8 @@ from collections.abc import Callable, Collection
 from contextlib import ExitStack
 from typing import BinaryIO
 
+from log import Log
+from log_buffer import LogBuffer
 from message import Message
 
 """Huge difference in way main_process and other_process handles network operations, to encapsulate these two different network classes are implemented for this build. """
@@ -20,12 +22,14 @@ class MainNetwork:
         timeout: float,
         n_listen: int,
         worker_ids: Collection[int],
+        log_buffer: LogBuffer,
     ) -> None:
         self.server = server
         self.host = host
         self.port = port
         self.timeout = timeout
         self.worker_ids = frozenset(worker_ids)
+        self.log_buffer = log_buffer
         self.streams: dict[int, BinaryIO] = {}
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind((host, port))
@@ -48,10 +52,26 @@ class MainNetwork:
             raise RuntimeError(f"Worker {worker_id} is not registered.")
         stream.write((message.serialize() + "\n").encode())
         stream.flush()
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        self.log_buffer.append(Log(
+            time.time_ns(), "main", sequence,
+            f"message sent source=main dest=worker {worker_id} "
+            f"request_type={message.request_type} operation={message.operation} request_id={message.request_id}",
+        ))
         response = stream.readline()
         if not response:
             raise ConnectionError(f"Worker {worker_id} disconnected before replying")
         reply = Message.deserialize(response.decode())
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        error = f" error={reply.parameters!r}" if reply.request_type == "ERR" else ""
+        self.log_buffer.append(Log(
+            time.time_ns(), "main", sequence,
+            f"message received source=worker {worker_id} dest=main "
+            f"request_type={reply.request_type} operation={reply.operation} "
+            f"request_id={reply.request_id}{error}",
+        ))
         if reply.worker_id != worker_id or reply.request_id != message.request_id:
             raise RuntimeError(f"Unexpected reply from worker {worker_id}: {reply}")
         if reply.request_type != "OK":
@@ -69,6 +89,14 @@ class MainNetwork:
             raise ConnectionError("Worker disconnected before registering")
         registration = Message.deserialize(data.decode())
         worker_id = registration.worker_id
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        self.log_buffer.append(Log(
+            time.time_ns(), "main", sequence,
+            f"message received source=worker {worker_id} dest=main "
+            f"request_type={registration.request_type} operation={registration.operation} "
+            f"request_id={registration.request_id}",
+        ))
         if registration.request_type != "register" or worker_id not in self.worker_ids:
             raise ValueError(f"Invalid worker registration: {registration}")
         if worker_id in self.streams:
@@ -77,6 +105,14 @@ class MainNetwork:
         acknowledgement = Message(worker_id=worker_id, request_type="OK", operation="register")
         stream.write((acknowledgement.serialize() + "\n").encode())
         stream.flush()
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        self.log_buffer.append(Log(
+            time.time_ns(), "main", sequence,
+            f"message sent source=main dest=worker {worker_id} "
+            f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
+            f"request_id={acknowledgement.request_id}",
+        ))
         return worker_id
 
 
@@ -89,6 +125,7 @@ class otherNetwork:
         worker_id: int,
         host: str,
         port: int,
+        log_buffer: LogBuffer,
         timeout: float = 10.0,
         retries: int = 50,
         retry_delay: float = 0.1,
@@ -96,6 +133,7 @@ class otherNetwork:
         self.worker_id = worker_id
         self.host = host
         self.port = port
+        self.log_buffer = log_buffer
         self.timeout = timeout
         self.retries = retries
         self.retry_delay = retry_delay
@@ -115,10 +153,28 @@ class otherNetwork:
         registration = Message(worker_id=self.worker_id, request_type="register", operation="noop")
         stream.write((registration.serialize() + "\n").encode())
         stream.flush()
+        source = f"worker {self.worker_id}"
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        self.log_buffer.append(Log(
+            time.time_ns(), source, sequence,
+            f"message sent source={source} dest=main "
+            f"request_type={registration.request_type} operation={registration.operation} "
+            f"request_id={registration.request_id}",
+        ))
         response = stream.readline()
         if not response:
             raise ConnectionError("Main process disconnected during registration")
         acknowledgement = Message.deserialize(response.decode())
+        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
+        sequence = max((entry.sequence for entry in entries), default=-1) + 1
+        error = f" error={acknowledgement.parameters!r}" if acknowledgement.request_type == "ERR" else ""
+        self.log_buffer.append(Log(
+            time.time_ns(), source, sequence,
+            f"message received source=main dest={source} "
+            f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
+            f"request_id={acknowledgement.request_id}{error}",
+        ))
         if (
             acknowledgement.request_type != "OK"
             or acknowledgement.operation != "register"

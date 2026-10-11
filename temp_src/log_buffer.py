@@ -1,4 +1,3 @@
-"""Sorted system log storage, independent of message transport."""
 
 from __future__ import annotations
 
@@ -11,10 +10,16 @@ from typing import Any
 from functions import Serializable
 from log import Log
 
+"""
+    LogBuffer objects are stored by processes, they are encapsulated on Message objects across transfers 
+    They contain but also sort the logs inside, they don't check whether a log is stale for now. 
+    They also help with parsing and formatting logs.
+
+"""
 @dataclass
 class LogBuffer(Serializable):
     """Keep system logs sorted until a returned batch is acknowledged."""
-
+    owner_id: str = ""
     logs: list[Log] = field(default_factory=list)
     pending_logs: list[Log] | None = None
 

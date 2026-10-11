@@ -3,7 +3,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from math import isfinite
 from typing import Any
-
+import time
 from functions import Function
 
 
@@ -43,6 +43,7 @@ class MatrixMultiplication(Function):
 
     @staticmethod
     def _dot_product(left: Sequence[int | float], right: Sequence[int | float]) -> int | float:
+        time.sleep(0.1)
         """Compute one output entry from a row and a column."""
         return sum(a * b for a, b in zip(left, right))
 

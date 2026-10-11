@@ -1,4 +1,3 @@
-"""Immutable timestamped system events."""
 
 from __future__ import annotations
 
@@ -12,6 +11,7 @@ if TYPE_CHECKING:
     from message import Message
 
 
+""" Log objects help with encapsulating traces of information across processes. They implement Serializable because they are sent across the processes by Message objects. """
 @dataclass(slots=True)
 class Log(Serializable):
 
@@ -21,9 +21,9 @@ class Log(Serializable):
     event: str
 
 
-    #! To be implemented manually later
+    """Probably going to change in future, they store some of message fields only"""
     def message_event(self, message: Message) -> None:
-        self.event += f" {message.serialize()}"
+        self.event = f"request: {message.request_type} by id: {message.request_id} received by {message.worker_id} to handle operation {message.operation}"
 
     def serialize(self) -> dict[str, Any]:
         return {
@@ -51,6 +51,9 @@ class Log(Serializable):
             sequence=payload["sequence"],
             event=payload["event"],
         )
+
+
+    """They help with sorting logs based on time"""
 
     def __lt__(self, other: object) -> bool:
         return self.timestamp_ns < other.timestamp_ns
