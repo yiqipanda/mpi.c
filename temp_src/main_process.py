@@ -1,6 +1,7 @@
 import socket
 import time
 from contextlib import ExitStack
+from pathlib import Path
 from log import Log
 from log_buffer import LogBuffer
 from message import Message
@@ -122,7 +123,11 @@ def demo() -> None:
                 raise RuntimeError("Partitioned matrix product differs from the full product")
             print(f"orchestrated result is {mm1.result}")
 
-            print(collect_system_logs(network, main_log).export_syslog())
+            syslog = collect_system_logs(network, main_log).export_syslog()
+            log_path = Path(__file__).resolve().parents[1] / "logs" / "syslog.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.write_text(f"{syslog}\n", encoding="utf-8")
+            print(syslog)
 
 
 if __name__ == "__main__":

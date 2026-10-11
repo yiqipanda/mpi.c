@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1390"
+     viewBox="0 0 1500 1390" role="img"
+     aria-labelledby="diagram-title diagram-description">
+  <title id="diagram-title">Function object mutation across main and worker processes</title>
+  <desc id="diagram-description">Function A is partitioned. Part 1 is evaluated in the main process, while a serialized copy of Part 2 is evaluated in a worker. The evaluated worker copy returns as a new main process object. Function A combines both results.</desc>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="5"
+            orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#293444"/>
+    </marker>
+  </defs>
+  <rect width="1500" height="1390" fill="#f4f4f4"/>
+  <rect width="1500" height="150" fill="#293444"/>
+  <text x="50" y="65" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">Function object flow</text>
+  <text x="50" y="105" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="18" font-weight="400" fill="#c4ceda">One part runs locally; one part runs on a worker</text>
+  <text x="1450" y="66" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="700" fill="#55c7ca">CONCEPTUAL FLOW</text>
+  <rect x="40" y="176" width="680" height="1150" rx="20" fill="#fff9fc" stroke="#e8247f" stroke-width="2"/>
+  <rect x="780" y="176" width="680" height="1150" rx="20" fill="#f9f8ff" stroke="#5956c9" stroke-width="2"/>
+  <rect x="40" y="176" width="680" height="58" rx="20" fill="#e8247f"/>
+  <rect x="780" y="176" width="680" height="58" rx="20" fill="#5956c9"/>
+  <text x="68" y="214" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">MAIN PROCESS</text>
+  <text x="808" y="214" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">WORKER PROCESS</text>
+  <text x="1427" y="214" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#ffffff">separate object identity</text>
+  <path d="M 380 342 V 366 H 230 V 405" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 380 366 H 530 V 405" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 230 517 V 630" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 670 461 H 855" fill="none" stroke="#5956c9" stroke-width="2.8" stroke-dasharray="8 7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 1120 517 V 630" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 1120 742 V 916 H 670" fill="none" stroke="#5956c9" stroke-width="2.8" stroke-dasharray="8 7" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 230 742 V 1050 H 380 V 1090" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 530 972 V 1050 H 380 V 1090" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <path d="M 380 1202 V 1238" fill="none" stroke="#293444" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+  <rect x="235" y="242" width="290" height="100" rx="15" fill="#ffffff" stroke="#e8247f" stroke-width="2.5"/>
+<rect x="235" y="242" width="10" height="100" rx="5" fill="#e8247f"/>
+<text x="261" y="276" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Function A</text>
+<text x="261" y="304" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">original input</text>
+<text x="261" y="333" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e8247f">result = None</text>
+  <rect x="90" y="405" width="280" height="112" rx="15" fill="#ffffff" stroke="#e8247f" stroke-width="2.5"/>
+<rect x="90" y="405" width="10" height="112" rx="5" fill="#e8247f"/>
+<text x="116" y="439" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Part 1</text>
+<text x="116" y="467" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">main process original</text>
+<text x="116" y="496" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e8247f">result = None</text>
+  <rect x="390" y="405" width="280" height="112" rx="15" fill="#ffffff" stroke="#e8247f" stroke-width="2.5"/>
+<rect x="390" y="405" width="10" height="112" rx="5" fill="#e8247f"/>
+<text x="416" y="439" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Part 2</text>
+<text x="416" y="467" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">main process original</text>
+<text x="416" y="496" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#e8247f">result = None</text>
+  <rect x="90" y="630" width="280" height="112" rx="15" fill="#ffffff" stroke="#138572" stroke-width="2.5"/>
+<rect x="90" y="630" width="10" height="112" rx="5" fill="#138572"/>
+<text x="116" y="664" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Part 1</text>
+<text x="116" y="692" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">evaluated locally</text>
+<text x="116" y="721" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#138572">result = value</text>
+  <rect x="855" y="405" width="530" height="112" rx="15" fill="#ffffff" stroke="#5956c9" stroke-width="2.5"/>
+<rect x="855" y="405" width="10" height="112" rx="5" fill="#5956c9"/>
+<text x="881" y="439" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Part 2 copy</text>
+<text x="881" y="467" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">deserialized; stored by request ID</text>
+<text x="881" y="496" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#5956c9">result = None</text>
+  <rect x="855" y="630" width="530" height="112" rx="15" fill="#ffffff" stroke="#138572" stroke-width="2.5"/>
+<rect x="855" y="630" width="10" height="112" rx="5" fill="#138572"/>
+<text x="881" y="664" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Part 2 copy</text>
+<text x="881" y="692" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">eval() mutates this worker object</text>
+<text x="881" y="721" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#138572">result = value</text>
+  <rect x="390" y="860" width="280" height="112" rx="15" fill="#ffffff" stroke="#138572" stroke-width="2.5"/>
+<rect x="390" y="860" width="10" height="112" rx="5" fill="#138572"/>
+<text x="416" y="894" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Returned Part 2</text>
+<text x="416" y="922" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">new main process copy</text>
+<text x="416" y="951" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#138572">result = value</text>
+  <rect x="210" y="1090" width="340" height="112" rx="15" fill="#ffffff" stroke="#138572" stroke-width="2.5"/>
+<rect x="210" y="1090" width="10" height="112" rx="5" fill="#138572"/>
+<text x="236" y="1124" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" fill="#293444">Function A</text>
+<text x="236" y="1152" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">orchestrate(part results)</text>
+<text x="236" y="1181" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#138572">result = final value</text>
+  <rect x="210" y="1238" width="340" height="68" rx="15" fill="#138572"/>
+  <text x="380" y="1280" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#ffffff">Final result ready to use</text>
+  <rect x="321" y="350" width="118" height="34" rx="17" fill="#293444"/>
+<text x="380" y="372" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">partition()</text>
+  <rect x="167" y="556" width="126" height="34" rx="17" fill="#293444"/>
+<text x="230" y="578" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">eval() local</text>
+  <rect x="679" y="405" width="166" height="34" rx="17" fill="#293444"/>
+<text x="762" y="427" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">serialize + send</text>
+  <rect x="1062" y="556" width="116" height="34" rx="17" fill="#293444"/>
+<text x="1120" y="578" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">eval()</text>
+  <rect x="673" y="861" width="178" height="34" rx="17" fill="#293444"/>
+<text x="762" y="883" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">serialize + return</text>
+  <rect x="307" y="1029" width="146" height="34" rx="17" fill="#293444"/>
+<text x="380" y="1051" text-anchor="middle" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#ffffff">orchestrate()</text>
+  <text x="405" y="565" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">Main Part 2 stays unevaluated.</text>
+  <text x="405" y="589" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">Returned Part 2 is another copy.</text>
+  <text x="855" y="338" text-anchor="start" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#607184">Evaluation status is tracked separately from the Function object.</text>
+  <text x="1450" y="1363" text-anchor="end" font-family="Inter, Avenir, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#607184">Conceptual split • current demo dispatches all jobs to workers</text>
+</svg>
