@@ -52,10 +52,8 @@ class MainNetwork:
             raise RuntimeError(f"Worker {worker_id} is not registered.")
         stream.write((message.serialize() + "\n").encode())
         stream.flush()
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         self.log_buffer.append(Log(
-            time.time_ns(), "main", sequence,
+            time.time_ns(), "main",
             f"message sent source=main dest=worker {worker_id} "
             f"request_type={message.request_type} operation={message.operation} request_id={message.request_id}",
         ))
@@ -63,11 +61,9 @@ class MainNetwork:
         if not response:
             raise ConnectionError(f"Worker {worker_id} disconnected before replying")
         reply = Message.deserialize(response.decode())
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         error = f" error={reply.parameters!r}" if reply.request_type == "ERR" else ""
         self.log_buffer.append(Log(
-            time.time_ns(), "main", sequence,
+            time.time_ns(), "main",
             f"message received source=worker {worker_id} dest=main "
             f"request_type={reply.request_type} operation={reply.operation} "
             f"request_id={reply.request_id}{error}",
@@ -89,10 +85,8 @@ class MainNetwork:
             raise ConnectionError("Worker disconnected before registering")
         registration = Message.deserialize(data.decode())
         worker_id = registration.worker_id
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         self.log_buffer.append(Log(
-            time.time_ns(), "main", sequence,
+            time.time_ns(), "main",
             f"message received source=worker {worker_id} dest=main "
             f"request_type={registration.request_type} operation={registration.operation} "
             f"request_id={registration.request_id}",
@@ -105,10 +99,8 @@ class MainNetwork:
         acknowledgement = Message(worker_id=worker_id, request_type="OK", operation="register")
         stream.write((acknowledgement.serialize() + "\n").encode())
         stream.flush()
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         self.log_buffer.append(Log(
-            time.time_ns(), "main", sequence,
+            time.time_ns(), "main",
             f"message sent source=main dest=worker {worker_id} "
             f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
             f"request_id={acknowledgement.request_id}",
@@ -154,10 +146,8 @@ class otherNetwork:
         stream.write((registration.serialize() + "\n").encode())
         stream.flush()
         source = f"worker {self.worker_id}"
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         self.log_buffer.append(Log(
-            time.time_ns(), source, sequence,
+            time.time_ns(), source,
             f"message sent source={source} dest=main "
             f"request_type={registration.request_type} operation={registration.operation} "
             f"request_id={registration.request_id}",
@@ -166,11 +156,9 @@ class otherNetwork:
         if not response:
             raise ConnectionError("Main process disconnected during registration")
         acknowledgement = Message.deserialize(response.decode())
-        entries = self.log_buffer.logs + (self.log_buffer.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
         error = f" error={acknowledgement.parameters!r}" if acknowledgement.request_type == "ERR" else ""
         self.log_buffer.append(Log(
-            time.time_ns(), source, sequence,
+            time.time_ns(), source,
             f"message received source=main dest={source} "
             f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
             f"request_id={acknowledgement.request_id}{error}",

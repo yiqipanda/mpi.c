@@ -106,7 +106,7 @@ class LogBuffer(Serializable):
             from log import Log
 
             buffer = LogBuffer()
-            buffer.append(Log(1_000_000_000, "worker 1", 0, "started"))
+            buffer.append(Log(1_000_000_000, "worker 1", "started"))
             buffer.export_syslog(hostname="node1")
 
         Example output (shown with ``repr`` to expose the UTF-8 marker)::

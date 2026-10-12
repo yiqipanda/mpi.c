@@ -17,7 +17,6 @@ class Log(Serializable):
 
     timestamp_ns: int
     source: str
-    sequence: int
     event: str
 
 
@@ -30,25 +29,22 @@ class Log(Serializable):
             "class": "Log",
             "timestamp_ns": self.timestamp_ns,
             "source": self.source,
-            "sequence": self.sequence,
             "event": self.event,
         }
 
     @classmethod
     def deserialize(cls, payload: Mapping[str, Any]) -> "Log":
         if not isinstance(payload, Mapping) or set(payload) != {
-            "class", "timestamp_ns", "source", "sequence", "event"
+            "class", "timestamp_ns", "source", "event"
         } or payload["class"] != cls.__name__:
             raise ValueError("Invalid serialized Log")
         if (type(payload["timestamp_ns"]) is not int
-                or type(payload["sequence"]) is not int
                 or not isinstance(payload["source"], str)
                 or not isinstance(payload["event"], str)):
             raise ValueError("Invalid Log fields")
         return cls(
             timestamp_ns=payload["timestamp_ns"],
             source=payload["source"],
-            sequence=payload["sequence"],
             event=payload["event"],
         )
 

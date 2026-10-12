@@ -27,9 +27,7 @@ def log_execution(func: Callable[[int, Message], Message]) -> Callable[[int, Mes
         start = time.perf_counter()
         reply = func(worker_id, message)
 
-        entries = LOG_BUFFER.logs + (LOG_BUFFER.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
-        log = Log(time.time_ns(), f"worker {worker_id}", sequence, "")
+        log = Log(time.time_ns(), f"worker {worker_id}", "")
         log.message_event(message)
         log.event += f"; reply={reply.request_type}; dispatch_elapsed={time.perf_counter() - start:.6f}s"
         if reply.request_type == "ERR":
@@ -89,20 +87,16 @@ def get_request(worker_id: int, message: Message) -> Message:
 def main() -> None:
     worker_id = int(sys.argv[1])
     source = f"worker {worker_id}"
-    LOG_BUFFER.append(Log(time.time_ns(), source, 0, "process started"))
+    LOG_BUFFER.append(Log(time.time_ns(), source, "process started"))
     network = otherNetwork(worker_id=worker_id, host=HOST, port=PORT, log_buffer=LOG_BUFFER, timeout=30)
     with network.connect() as connection, connection.makefile("rwb") as stream:
-        LOG_BUFFER.append(Log(time.time_ns(), source, 1, "connected to main process"))
+        LOG_BUFFER.append(Log(time.time_ns(), source, "connected to main process"))
         network.register(stream)
-        entries = LOG_BUFFER.logs + (LOG_BUFFER.pending_logs or [])
-        sequence = max((entry.sequence for entry in entries), default=-1) + 1
-        LOG_BUFFER.append(Log(time.time_ns(), source, sequence, "registered with main process"))
+        LOG_BUFFER.append(Log(time.time_ns(), source, "registered with main process"))
         for data in stream:
             message = Message.deserialize(data.decode())
-            entries = LOG_BUFFER.logs + (LOG_BUFFER.pending_logs or [])
-            sequence = max((entry.sequence for entry in entries), default=-1) + 1
             LOG_BUFFER.append(Log(
-                time.time_ns(), source, sequence,
+                time.time_ns(), source,
                 f"message received source=main dest={source} "
                 f"request_type={message.request_type} operation={message.operation} "
                 f"request_id={message.request_id}",
@@ -110,11 +104,9 @@ def main() -> None:
             reply = get_request(worker_id, message)
             stream.write((reply.serialize() + "\n").encode())
             stream.flush()
-            entries = LOG_BUFFER.logs + (LOG_BUFFER.pending_logs or [])
-            sequence = max((entry.sequence for entry in entries), default=-1) + 1
             error = f" error={reply.parameters!r}" if reply.request_type == "ERR" else ""
             LOG_BUFFER.append(Log(
-                time.time_ns(), source, sequence,
+                time.time_ns(), source,
                 f"message sent source={source} dest=main "
                 f"request_type={reply.request_type} operation={reply.operation} "
                 f"request_id={reply.request_id}{error}",
@@ -130,9 +122,7 @@ def main() -> None:
                     execution_error = exc
 
                 execution_elapsed = time.perf_counter() - execution_start
-                entries = LOG_BUFFER.logs + (LOG_BUFFER.pending_logs or [])
-                sequence = max((entry.sequence for entry in entries), default=-1) + 1
-                log = Log(time.time_ns(), source, sequence, "")
+                log = Log(time.time_ns(), source, "")
                 log.message_event(message)
                 log.event += (
                     f"; function_execution={'OK' if evaluation_status[message.request_id] else 'ERR'}"

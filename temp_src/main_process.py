@@ -56,78 +56,80 @@ Registration is both ways with int ids to distinguish, no authentication impleme
 No fallbacks, test cases, traces implemented as of this build"""
 
 def demo() -> None:
-    """Not all network operations are encapsulated under network class to avoid coupling in IO ops"""
+    """Compare local evaluation with partitioned evaluation of the same matrix."""
     main_log = MAIN_LOG
-    main_sequence = 0
-    main_log.append(Log(time.time_ns(), "main", main_sequence, "process started"))
-    main_sequence += 1
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+    main_log.append(Log(time.time_ns(), "main", "process started"))
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server, ExitStack() as stack:
         network = MainNetwork(server=server, port=PORT, host=HOST, timeout=30, n_listen=3, worker_ids=WORKER_IDS, log_buffer=main_log)
-        main_log.append(Log(time.time_ns(), "main", main_sequence, "listening for worker processes"))
-        main_sequence += 1
+        main_log.append(Log(time.time_ns(), "main", "listening for worker processes"))
 
+        for _ in WORKER_IDS:
+            worker_id = network.register_worker(stack)
+            main_log.append(Log(time.time_ns(), "main", f"worker {worker_id} registered"))
 
+        size = 15
         m1: list[list[int]] = [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
+            [row * size + column + 1 for column in range(size)]
+            for row in range(size)
         ]
         m2: list[list[int]] = [
-            [0, 1, 2, 3],
-            [4, 5, 6, 7],
-            [8, 9, 10, 11],
-            [12, 13, 14, 15],
+            [row * size + column for column in range(size)]
+            for row in range(size)
         ]
-        mm1 = MatrixMultiplication(params=[m1, m2])
-        mm2, mm3 = mm1.partition()
 
-        # Worker 1 evaluates the full product; workers 2 and 3 evaluate its partitions.
+        local_start = time.perf_counter()
+        local_function = MatrixMultiplication(params=[m1, m2])
+        if not local_function.eval():
+            raise RuntimeError("Local matrix evaluation failed")
+        local_elapsed = time.perf_counter() - local_start
+
+        # The launcher starts three workers. Keep the unused one connected
+        # during the second timed path without adding work to that measurement.
+        network.send_request(
+            worker_id=3,
+            message=Message(request_type="ackLogs", operation="flush"),
+        )
+
+        distributed_start = time.perf_counter()
+        distributed_function = MatrixMultiplication(params=[m1, m2])
+        left_partition, right_partition = distributed_function.partition()
         matrix_operations = {
-            1: Message(request_id=0, request_type="createFunction", operation="create", parameters=[mm1]),
-            2: Message(request_id=1, request_type="createFunction", operation="create", parameters=[mm2]),
-            3: Message(request_id=2, request_type="createFunction", operation="create", parameters=[mm3]),
+            1: Message(request_id=0, request_type="createFunction", operation="create", parameters=[left_partition]),
+            2: Message(request_id=1, request_type="createFunction", operation="create", parameters=[right_partition]),
         }
 
-        """ExitStack is used for handling multiple context managers better"""
-        with ExitStack() as stack:
+        for worker_id in (1, 2):
+            network.send_request(worker_id=worker_id, message=matrix_operations[worker_id])
 
-            for _ in WORKER_IDS:
-                worker_id = network.register_worker(stack)
-                main_sequence = max(
-                    (entry.sequence for entry in main_log.logs + (main_log.pending_logs or [])),
-                    default=-1,
-                ) + 1
-                main_log.append(Log(time.time_ns(), "main", main_sequence, f"worker {worker_id} registered"))
-                main_sequence += 1
-    
-            for worker_id in sorted(WORKER_IDS):
-                network.send_request(worker_id=worker_id, message=matrix_operations[worker_id])
+        results: dict[int, MatrixMultiplication] = {}
+        for worker_id in (1, 2):
+            result_request = Message(
+                request_id=matrix_operations[worker_id].request_id,
+                request_type="getFunctionResult",
+                operation="return",
+            )
+            result = network.send_request(worker_id=worker_id, message=result_request).parameters[0]
+            if not isinstance(result, MatrixMultiplication):
+                raise TypeError(f"Worker {worker_id} returned an unexpected result")
+            results[worker_id] = result
 
-            results: dict[int, MatrixMultiplication] = {}
-            for worker_id in sorted(WORKER_IDS):
-                result_request = Message(
-                    request_id=matrix_operations[worker_id].request_id,
-                    request_type="getFunctionResult",
-                    operation="return",
-                )
-                result = network.send_request(worker_id=worker_id, message=result_request).parameters[0]
-                if not isinstance(result, MatrixMultiplication):
-                    raise TypeError(f"Worker {worker_id} returned an unexpected result")
-                results[worker_id] = result
-                print(f"worker {worker_id} result is {result.result}")
+        if not distributed_function.orchestrate([results[1], results[2]]):
+            raise RuntimeError("Could not combine partition results")
+        distributed_elapsed = time.perf_counter() - distributed_start
 
-            if not mm1.orchestrate([results[2], results[3]]):
-                raise RuntimeError("Could not combine partition results")
-            if mm1.result != results[1].result:
-                raise RuntimeError("Partitioned matrix product differs from the full product")
-            print(f"orchestrated result is {mm1.result}")
+        if distributed_function.result != local_function.result:
+            raise RuntimeError("Partitioned matrix product differs from local evaluation")
 
-            syslog = collect_system_logs(network, main_log).export_syslog()
-            log_path = Path(__file__).resolve().parents[1] / "logs" / "syslog.log"
-            log_path.parent.mkdir(parents=True, exist_ok=True)
-            log_path.write_text(f"{syslog}\n", encoding="utf-8")
-            print(syslog)
+        print(f"Matrix size: {size} x {size}")
+        print(f"Local object creation + evaluation: {local_elapsed:.6f} s")
+        print(f"Distributed creation through orchestration: {distributed_elapsed:.6f} s")
+        print(f"Local / distributed time ratio: {local_elapsed / distributed_elapsed:.3f}x")
+        print("Results match: yes")
+
+        syslog = collect_system_logs(network, main_log).export_syslog()
+        log_path = Path(__file__).resolve().parents[1] / "logs" / "syslog.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.write_text(f"{syslog}\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
