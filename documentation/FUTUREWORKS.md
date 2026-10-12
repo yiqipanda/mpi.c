@@ -3,8 +3,7 @@
 ## 1. Purpose and Scope
 
 This document describes the planned evolution of the Python prototype in
-`prototype/`. It does not define future work for the pthread-based C/C++
-runtime.
+`prototype/`.
 
 The current prototype models a program as a fixed hierarchy of one-shot tasks.
 The target architecture instead treats each simulated computer as a persistent

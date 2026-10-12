@@ -1,110 +1,172 @@
-"""Small TCP transport used by the app and engine processes."""
-
-from __future__ import annotations
-
-from dataclasses import dataclass
-import json
 import socket
-import struct
-from typing import Any, Final
+import time
+from collections.abc import Callable, Collection
+from contextlib import ExitStack
+from typing import BinaryIO
 
+from log import Log
+from log_buffer import LogBuffer
+from message import Message
 
-MAX_MESSAGE_BYTES = 16 * 1024 * 1024
+"""Huge difference in way main_process and other_process handles network operations, to encapsulate these two different network classes are implemented for this build. """
 
+"""Helps main_process handle network operations"""
+class MainNetwork:
 
-class ProtocolError(RuntimeError):
-    """Raised when a TCP message does not follow the expected format."""
-
-@dataclass
-class Network:
-
-    """Create TCP connections and exchange length-prefixed JSON objects."""
-    owner_id: Final[str] = "app"
-
-    def listen(self, host: str, port: int) -> socket.socket:
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server.bind((host, port))
-            server.listen(1)
-            self._print(f"listening on {host}:{port}")
-            return server
-        except Exception:
-            server.close()
-            raise
-
-    def connect(
+    """The way init is implemented may change in the future to enchance modifications"""
+    def __init__(
         self,
+        server: socket.socket,
         host: str,
         port: int,
         timeout: float,
-        peer_id: str = "peer",
-    ) -> socket.socket:
-        connection = socket.create_connection((host, port), timeout=timeout)
-        self._print(f"connected to {peer_id} at {host}:{port}")
-        return connection
-
-    def accept(self, server: socket.socket, peer_id: str = "peer") -> socket.socket:
-        connection, address = server.accept()
-        self._print(f"accepted {peer_id} from {address[0]}:{address[1]}")
-        return connection
-
-    def reserve_port(self, host: str) -> int:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reservation:
-            reservation.bind((host, 0))
-            return reservation.getsockname()[1]
-
-    def send(
-        self,
-        connection: socket.socket,
-        payload: dict[str, Any],
-        peer_id: str = "peer",
+        n_listen: int,
+        worker_ids: Collection[int],
+        log_buffer: LogBuffer,
     ) -> None:
-        encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        if len(encoded) > MAX_MESSAGE_BYTES:
-            raise ProtocolError("message exceeds the 16 MiB limit")
-        connection.sendall(struct.pack("!I", len(encoded)) + encoded)
-        self._print(f"sent {self._describe(payload)} -> {peer_id}")
+        self.server = server
+        self.host = host
+        self.port = port
+        self.timeout = timeout
+        self.worker_ids = frozenset(worker_ids)
+        self.log_buffer = log_buffer
+        self.streams: dict[int, BinaryIO] = {}
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind((host, port))
+        server.listen(n_listen)
+        server.settimeout(timeout)
 
-    def receive(
+
+    def set_stream(self, worker_id: int, stream: BinaryIO) -> None:
+        self.streams[worker_id] = stream
+
+    def get_stream(self, worker_id: int) -> BinaryIO:
+        return self.streams[worker_id]
+
+
+
+    """Helps main process send request to other process, not broadcast"""
+    def send_request(self, worker_id: int, message: Message) -> Message:
+        stream = self.get_stream(worker_id)
+        if not stream:
+            raise RuntimeError(f"Worker {worker_id} is not registered.")
+        stream.write((message.serialize() + "\n").encode())
+        stream.flush()
+        self.log_buffer.append(Log(
+            time.time_ns(), "main",
+            f"message sent source=main dest=worker {worker_id} "
+            f"request_type={message.request_type} operation={message.operation} request_id={message.request_id}",
+        ))
+        response = stream.readline()
+        if not response:
+            raise ConnectionError(f"Worker {worker_id} disconnected before replying")
+        reply = Message.deserialize(response.decode())
+        error = f" error={reply.parameters!r}" if reply.request_type == "ERR" else ""
+        self.log_buffer.append(Log(
+            time.time_ns(), "main",
+            f"message received source=worker {worker_id} dest=main "
+            f"request_type={reply.request_type} operation={reply.operation} "
+            f"request_id={reply.request_id}{error}",
+        ))
+        if reply.worker_id != worker_id or reply.request_id != message.request_id:
+            raise RuntimeError(f"Unexpected reply from worker {worker_id}: {reply}")
+        if reply.request_type != "OK":
+            raise RuntimeError(f"Worker {worker_id} rejected request: {reply.parameters}")
+        return reply
+
+    """Registers other processes to main process table"""
+    def register_worker(self, stack: ExitStack) -> int:
+        connection, _ = self.server.accept()
+        stack.enter_context(connection)
+        connection.settimeout(self.timeout)
+        stream = stack.enter_context(connection.makefile("rwb"))
+        data = stream.readline()
+        if not data:
+            raise ConnectionError("Worker disconnected before registering")
+        registration = Message.deserialize(data.decode())
+        worker_id = registration.worker_id
+        self.log_buffer.append(Log(
+            time.time_ns(), "main",
+            f"message received source=worker {worker_id} dest=main "
+            f"request_type={registration.request_type} operation={registration.operation} "
+            f"request_id={registration.request_id}",
+        ))
+        if registration.request_type != "register" or worker_id not in self.worker_ids:
+            raise ValueError(f"Invalid worker registration: {registration}")
+        if worker_id in self.streams:
+            raise ValueError(f"Worker {worker_id} registered twice")
+        self.set_stream(worker_id, stream)
+        acknowledgement = Message(worker_id=worker_id, request_type="OK", operation="register")
+        stream.write((acknowledgement.serialize() + "\n").encode())
+        stream.flush()
+        self.log_buffer.append(Log(
+            time.time_ns(), "main",
+            f"message sent source=main dest=worker {worker_id} "
+            f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
+            f"request_id={acknowledgement.request_id}",
+        ))
+        return worker_id
+
+
+"""Helps other_process handle network operations"""
+class otherNetwork:
+    
+    """The way init is implemented may change in the future to enchance modifications"""
+    def __init__(
         self,
-        connection: socket.socket,
-        peer_id: str = "peer",
-    ) -> dict[str, Any]:
-        size = struct.unpack("!I", self._receive_exact(connection, 4))[0]
-        if size > MAX_MESSAGE_BYTES:
-            raise ProtocolError("message exceeds the 16 MiB limit")
-        payload = json.loads(self._receive_exact(connection, size).decode("utf-8"))
-        if not isinstance(payload, dict):
-            raise ProtocolError("message payload must be an object")
-        self._print(f"received {self._describe(payload)} <- {peer_id}")
-        return payload
+        worker_id: int,
+        host: str,
+        port: int,
+        log_buffer: LogBuffer,
+        timeout: float = 10.0,
+        retries: int = 50,
+        retry_delay: float = 0.1,
+    ) -> None:
+        self.worker_id = worker_id
+        self.host = host
+        self.port = port
+        self.log_buffer = log_buffer
+        self.timeout = timeout
+        self.retries = retries
+        self.retry_delay = retry_delay
 
-    def close(self, connection: socket.socket, peer_id: str = "peer") -> None:
-        connection.close()
-        self._print(f"closed connection with {peer_id}")
 
-    def _print(self, message: str) -> None:
-        print(f"[tcp {self.owner_id}] {message}", flush=True)
+    """Allows multiple connection creation retries."""
+    def connect(self) -> socket.socket:
+        for _ in range(self.retries):
+            try:
+                return socket.create_connection((self.host, self.port), timeout=self.timeout)
+            except ConnectionRefusedError:
+                time.sleep(self.retry_delay)
+        raise RuntimeError("Could not connect to main_process.py")
 
-    @staticmethod
-    def _describe(payload: dict[str, Any]) -> str:
-        operation = payload.get("command", "response")
-        identifiers = []
-        for name in ("object_id", "engine_id"):
-            if name in payload:
-                identifiers.append(f"{name}={payload[name]}")
-        if operation == "response":
-            identifiers.insert(0, "ok" if payload.get("ok") else "warning")
-        details = f" ({', '.join(identifiers)})" if identifiers else ""
-        return f"{operation}{details}"
-
-    @staticmethod
-    def _receive_exact(connection: socket.socket, size: int) -> bytes:
-        chunks = bytearray()
-        while len(chunks) < size:
-            chunk = connection.recv(size - len(chunks))
-            if not chunk:
-                raise EOFError("socket closed while receiving a message")
-            chunks.extend(chunk)
-        return bytes(chunks)
+    """Helps with registry of other process to main process"""
+    def register(self, stream: BinaryIO) -> None:
+        registration = Message(worker_id=self.worker_id, request_type="register", operation="noop")
+        stream.write((registration.serialize() + "\n").encode())
+        stream.flush()
+        source = f"worker {self.worker_id}"
+        self.log_buffer.append(Log(
+            time.time_ns(), source,
+            f"message sent source={source} dest=main "
+            f"request_type={registration.request_type} operation={registration.operation} "
+            f"request_id={registration.request_id}",
+        ))
+        response = stream.readline()
+        if not response:
+            raise ConnectionError("Main process disconnected during registration")
+        acknowledgement = Message.deserialize(response.decode())
+        error = f" error={acknowledgement.parameters!r}" if acknowledgement.request_type == "ERR" else ""
+        self.log_buffer.append(Log(
+            time.time_ns(), source,
+            f"message received source=main dest={source} "
+            f"request_type={acknowledgement.request_type} operation={acknowledgement.operation} "
+            f"request_id={acknowledgement.request_id}{error}",
+        ))
+        if (
+            acknowledgement.request_type != "OK"
+            or acknowledgement.operation != "register"
+            or acknowledgement.worker_id != self.worker_id
+            or acknowledgement.request_id != registration.request_id
+        ):
+            raise RuntimeError(f"Registration rejected: {acknowledgement}")

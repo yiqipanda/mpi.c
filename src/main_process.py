@@ -1,6 +1,8 @@
 import socket
+import tempfile
 import time
 from contextlib import ExitStack
+from datetime import datetime, timezone
 from pathlib import Path
 from log import Log
 from log_buffer import LogBuffer
@@ -11,7 +13,6 @@ from matrix import MatrixMultiplication
 HOST = "127.0.0.1"
 PORT = 5001
 WORKER_IDS = {1, 2, 3}
-MAIN_LOG = LogBuffer()
 
 def collect_system_logs(network: MainNetwork, main_log: LogBuffer) -> LogBuffer:
 
@@ -57,7 +58,8 @@ No fallbacks, test cases, traces implemented as of this build"""
 
 def demo() -> None:
     """Compare local evaluation with partitioned evaluation of the same matrix."""
-    main_log = MAIN_LOG
+    run_timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    main_log = LogBuffer()
     main_log.append(Log(time.time_ns(), "main", "process started"))
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server, ExitStack() as stack:
         network = MainNetwork(server=server, port=PORT, host=HOST, timeout=30, n_listen=3, worker_ids=WORKER_IDS, log_buffer=main_log)
@@ -127,9 +129,19 @@ def demo() -> None:
         print("Results match: yes")
 
         syslog = collect_system_logs(network, main_log).export_syslog()
-        log_path = Path(__file__).resolve().parents[1] / "logs" / "syslog.log"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_path.write_text(f"{syslog}\n", encoding="utf-8")
+        log_directory = Path(__file__).resolve().parents[1] / "logs"
+        log_directory.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            prefix=f"syslog-{run_timestamp}-",
+            suffix=".log",
+            dir=log_directory,
+            delete=False,
+        ) as log_file:
+            log_file.write(f"{syslog}\n")
+            log_path = Path(log_file.name)
+        print(f"Syslog: {log_path}")
 
 
 if __name__ == "__main__":

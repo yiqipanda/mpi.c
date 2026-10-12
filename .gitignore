@@ -12,7 +12,7 @@ _deps
 CMakeUserPresets.json
 build-make/
 build-ninja/
-logs/*.log
+
 .pyc
 __pycache__/
 

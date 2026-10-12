@@ -7,43 +7,38 @@ import json
 from typing import Any
 import time
 
-
-
-class Serializable(ABC):
-    """ Separate abstract class to solidify serializing of functions """
-    
-
-    @abstractmethod
-    def serialize(self) -> dict[str, Any]:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def deserialize(cls, payload: Mapping[str, Any]) -> "Serializable":
-        pass
-
-
 @dataclass
-class Function(Serializable):
-    """ Function Objects are primarily partitionable entities to distribute workload """
+class Function(ABC):
+    """Stateful contract implemented by every distributable function."""
+
     params: Any = None
     result: Any = None
 
     @abstractmethod
-    def partition(self) -> tuple:
-        """Partition this function to several entities"""
+    def partition(self) -> tuple["Function", "Function"]:
+        """Partition this function exactly once into two explicit functions."""
 
     @abstractmethod
     def eval(self) -> bool:
-        """Evaluation result stored in self.result, completion is returned as boolean value."""
+        """Store the evaluation in ``result`` and report whether it succeeded."""
 
     @abstractmethod
     def orchestrate(self, partitions: Sequence["Function"]) -> bool:
-        """Combine instances of evaluated entities into self.result, compeletion is returned as boolean value."""
+        """Combine an ordered collection of evaluated partitions into ``result``."""
+
+    @abstractmethod
+    def serialize(self) -> dict[str, Any]:
+        """Return a transport-safe representation of this function's state."""
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, payload: Mapping[str, Any]) -> "Function":
+        """Reconstruct a function from its transport representation."""
+    
 
 @dataclass
 class Sum(Function):
-    """Best instance of function class because easy to partition."""
+    """Add all numbers in a list."""
 
     def partition(self) -> tuple["Sum", "Sum"]:
         if not isinstance(self.params, list):
@@ -64,8 +59,6 @@ class Sum(Function):
             z += e
             time.sleep(3)
         self.result = z
-        if z>4:
-            time.sleep(4)
         return True
 
     def orchestrate(self, partitions: Sequence[Function]) -> bool:
@@ -105,12 +98,13 @@ class Sum(Function):
         return cls(params=payload["params"], result=payload.get("result"))
 
 
+FUNCTION_CLASSES: dict[str, type[Function]] = {
+    Sum.__name__: Sum,
+}
 
 
-
-"""To be deleted later, no longer necessary """
 def deserialize_function(payload: Mapping[str, Any]) -> Function:
-    from registered_types import FUNCTION_CLASSES
+    """Resolve a controlled class name and deserialize its state."""
 
     if not isinstance(payload, Mapping):
         raise TypeError("serialized function must be a mapping")

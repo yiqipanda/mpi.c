@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build one SVG with local and partitioned event sequences from logs/syslog.log.
+"""Build one SVG with local and partitioned event sequences from the latest syslog.
 
 Run ``python3 tools/generate_cost_event_sequences.py`` from any directory.
 The output stays in tools/. No third-party package is needed.
@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-INPUT = ROOT / "logs" / "syslog.log"
+LOG_DIRECTORY = ROOT / "logs"
 OUTPUT = Path(__file__).with_name("cost_event_sequences.svg")
 WIDTH, HEIGHT = 1600, 1950
 INK, PAPER, WHITE, MUTED = "#293444", "#f4f4f4", "#ffffff", "#667283"
@@ -128,7 +128,7 @@ def note(x: int, y: int, title: str, detail: str, color: str,
     ]
 
 
-def build(entries: list[Entry]) -> str:
+def build(entries: list[Entry], source_name: str) -> str:
     main_start = event(entries, "process started", source="main")
     worker_start = event(entries, "process started", source="worker 1")
     registered = event(entries, "registered with main process", source="worker 2")
@@ -219,7 +219,7 @@ def build(entries: list[Entry]) -> str:
              size=14, color=MUTED),
         text(52, 1926, "The local and partitioned headlines use different boundaries. Exact local eval and partition/orchestration timers are absent from syslog.",
              size=14, color=MUTED),
-        text(1550, 1926, f"Source: logs/syslog.log · {main_start.time.date()} · UTC",
+        text(1550, 1926, f"Source: {source_name} · {main_start.time.date()} · UTC",
              size=13, color=MUTED, anchor="end"),
     ]
     body = "\n  ".join(elements)
@@ -240,12 +240,23 @@ def build(entries: list[Entry]) -> str:
 '''
 
 
+def latest_log() -> Path:
+    timestamped = list(LOG_DIRECTORY.glob("syslog-*.log"))
+    if timestamped:
+        return max(timestamped, key=lambda path: path.name)
+    legacy = LOG_DIRECTORY / "syslog.log"
+    if legacy.is_file():
+        return legacy
+    raise FileNotFoundError(f"No syslog files found in {LOG_DIRECTORY}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--log", type=Path, default=INPUT)
+    parser.add_argument("--log", type=Path, help="Syslog to read (default: latest run)")
     parser.add_argument("--output", type=Path, default=OUTPUT)
     args = parser.parse_args()
-    args.output.write_text(build(parse_log(args.log)), encoding="utf-8")
+    log_path = args.log or latest_log()
+    args.output.write_text(build(parse_log(log_path), log_path.name), encoding="utf-8")
     print(f"Wrote {args.output}")
     return 0
 

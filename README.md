@@ -1,221 +1,149 @@
 # mpi.c
 
-`mpi.c` is an experimental distributed-computing project that explores how a
-programmer-defined function can be split into smaller functions, sent to
-independent resolution engines, evaluated, and combined into one result.
+`mpi.c` is an experimental Python project for splitting a function into smaller
+functions, evaluating them in separate processes, and combining their results.
+Despite its name, it is not an MPI implementation. The current runnable demo
+uses local TCP connections between one main process and three worker processes.
 
-Despite the repository name, the active prototype is written in Python. The
-original C/C++ MPI-style simulator and an earlier Python task-runner prototype
-are retained under [`deprecated/`](deprecated/) for historical reference.
+## Run the demo
 
-> **Project status:** experimental and under active design. The current demo
-> runs engine subprocesses on one machine and requires the user to partition,
-> place, evaluate, and orchestrate work explicitly. It is not an MPI
-> implementation or a production-ready distributed runtime.
+You need Python 3.10 or newer, Bash, and permission to open localhost TCP
+sockets. The demo uses only the Python standard library.
 
-## Current capabilities
-
-The active prototype can:
-
-- start independent Python engine subprocesses;
-- communicate with each engine over localhost TCP;
-- frame and exchange JSON messages with a 16 MiB message limit;
-- create a function object and split it into exactly two partitions;
-- transfer serialized partitions to selected engines;
-- evaluate transferred partitions inside those engine processes;
-- return partial results and combine them in the main process; and
-- expose the full workflow through an interactive command-line demo.
-
-The included `Sum` function is the reference implementation of the
-partition/evaluate/orchestrate contract.
-
-## How it works
-
-The current execution flow is:
-
-1. The CLI creates one or more `Engine` objects.
-2. Each `Engine` starts a persistent Python subprocess and connects to it over
-   TCP.
-3. `DemoSystem` creates a `Function` and asks it to produce two child
-   functions.
-4. The user transfers each child function to an engine.
-5. Each engine deserializes and evaluates its assigned function.
-6. The main process receives the partial results and asks the original
-   function to orchestrate them into one result.
-
-![Proposed resolution-engine component architecture](diagrams/component_diagram.svg)
-
-The diagram represents the direction of the proposed architecture. The active
-demo implements a smaller, local subset of it; in particular, automatic
-analysis, multi-computer scheduling, versioned memory, caching, and recovery
-are roadmap items.
-
-## Requirements
-
-- Python 3.10 or newer
-- A host that permits localhost TCP sockets and subprocess creation
-- `pytest` only if you want to run the tests
-
-The active demo uses only the Python standard library at runtime.
-
-## Quick start
-
-From the repository root, start the interactive shell:
+From the repository root, run:
 
 ```bash
-python3 src/app.py
+bash scripts/run.sh
 ```
 
-Type `help` to list the available commands and `exit` to stop the demo. The
-application closes all engine subprocesses when the session ends.
+The launcher starts `src/main_process.py` and workers 1, 2, and 3 from `src/`.
+The main process listens on `127.0.0.1:5001`; workers connect and register.
+Workers 1 and 2 evaluate the two partitions. Worker 3 stays connected but does
+not evaluate a partition in this demo.
 
-### Example session
+The program prints the matrix size, local and distributed elapsed times, their
+ratio, whether the results match, and the path of the run's syslog file. A
+successful run writes one file under `logs/`, named
+`syslog-<UTC timestamp>-<unique suffix>.log`.
 
-Object and process IDs are generated at runtime. In the commands below,
-replace the uppercase placeholders with the IDs printed by the preceding
-commands.
+The matrix calculation deliberately sleeps for 0.1 seconds per output entry,
+so a run takes tens of seconds. The timings illustrate process overlap and
+protocol overhead, not a useful measure of matrix multiplication speed.
 
-```text
-create -p 2
-create -fn Sum -params [1,2,3,4]
-partition -id TOTAL_ID
-transfer -id LEFT_ID PROCESS_1_ID
-transfer -id RIGHT_ID PROCESS_2_ID
-eval -id LEFT_ID
-eval -id RIGHT_ID
-orchestrate -id TOTAL_ID
-list processes
-exit
-```
+## How the demo works
 
-`Sum.eval()` currently includes an artificial delay so that process activity
-is easy to observe. The interactive `eval` command is blocking, so this demo
-shows process isolation and data movement rather than measuring parallel
-speedup.
+1. The main process starts a TCP server and waits for the three workers to
+   register. The launcher starts the workers as separate Python processes.
+2. The main process creates two 15 × 15 matrices. It evaluates the complete
+   `MatrixMultiplication` locally as a comparison result.
+3. It creates another function object and splits the right-hand matrix by
+   columns into two function objects.
+4. It sends one serialized partition to each of workers 1 and 2 using a
+   `createFunction` request. Each worker stores its own deserialized copy,
+   acknowledges creation, and then evaluates that copy. The acknowledgment
+   lets the main process assign worker 2 while worker 1 is evaluating.
+5. The main process requests each completed function with
+   `getFunctionResult`, combines the two result matrices in column order, and
+   checks the result against the local calculation.
+6. It collects and acknowledges worker log batches, merges them with its own
+   logs, and writes the timestamped syslog file.
 
-## CLI reference
+Each network request has a corresponding reply. The main process waits for each
+reply before sending its next request; computation can overlap across the two
+workers because evaluation starts after each creation acknowledgment. Messages
+are newline-delimited JSON, and function objects cross the process boundary as
+serialized state. Evaluation changes a worker's copy; the main process receives
+another deserialized copy when it requests the result.
 
-| Command                                      | Purpose                                                             |
-| -------------------------------------------- | ------------------------------------------------------------------- |
-| `create -p NUMBER`                         | Start the requested number of engine subprocesses.                  |
-| `create -fn CLASS_NAME -params PARAMETERS` | Create a function from a Python literal such as a list of integers. |
-| `partition -id OBJECT_ID`                  | Split a function into two child function objects.                   |
-| `transfer -id OBJECT_ID PROCESS_ID`        | Serialize an object and assign it to an engine.                     |
-| `eval -id OBJECT_ID`                       | Evaluate a transferred object on its assigned engine.               |
-| `orchestrate -id OBJECT_ID`                | Combine the evaluated children of a partitioned object.             |
-| `list processes`                           | Show engine health, assigned objects, and evaluation state.         |
-| `help`                                     | Print the command list.                                             |
-| `exit` or `quit`                         | Close the engines and exit.                                         |
+## Code map
 
-Invalid commands and recoverable operation failures are printed as warnings;
-the shell remains open for the next command.
+| Path                                                                   | Role                                                                                               |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [`scripts/run.sh`](scripts/run.sh)                                    | Starts the main process and three workers, then waits for them.                                    |
+| [`src/main_process.py`](src/main_process.py)                          | Runs the comparison, assigns partitions, combines results, and writes the syslog.                  |
+| [`src/other_process.py`](src/other_process.py)                        | Registers a worker, dispatches requests, evaluates stored functions, and returns results and logs. |
+| [`src/network.py`](src/network.py)                                    | Opens localhost sockets, registers workers, and sends requests and replies.                        |
+| [`src/message.py`](src/message.py)                                    | Serializes messages, primitive values, and registered objects to JSON.                             |
+| [`src/functions.py`](src/functions.py)                                | Defines the`Function` contract and a `Sum` implementation.                                     |
+| [`src/matrix.py`](src/matrix.py)                                      | Implements the matrix function used by the demo.                                                   |
+| [`src/registered_types.py`](src/registered_types.py)                  | Lists function and log types allowed in messages.                                                  |
+| [`src/log.py`](src/log.py), [`src/log_buffer.py`](src/log_buffer.py) | Represent events, retain log batches until acknowledged, and format syslog output.                 |
 
-## Core modules
+A `Function` implementation supplies `partition()`, `eval()`, `orchestrate()`,
+`serialize()`, and `deserialize()`. `eval()` stores its output in `result` and
+returns whether it succeeded. The current matrix implementation always creates
+two partitions. `Sum` is registered and illustrates the same contract, but the
+launcher does not run it. To use another function in the demo, implement and
+register it in `src/registered_types.py`, then update the fixed workload in
+`src/main_process.py`.
 
-### `src/app.py`
+## Logs
 
-Provides the CLI and `DemoSystem`, the session-level coordinator. It owns the
-object registry, process registry, partition relationships, and
-object-to-engine assignments.
-
-### `src/engine.py`
-
-Implements command parsing, the parent-side `Engine` handle, and the child
-process server. Each engine keeps transferred functions in memory and responds
-to transfer, evaluation, and shutdown requests.
-
-### `src/functions.py`
-
-Defines the abstract `Function` contract and the included `Sum`
-implementation. A distributable function is responsible for:
-
-- `partition()` — create exactly two child functions;
-- `eval()` — compute and store its result;
-- `orchestrate()` — combine evaluated child results;
-- `serialize()` — produce a JSON-compatible representation; and
-- `deserialize()` — restore the function from that representation.
-
-New function classes must also be added to `FUNCTION_CLASSES` so engine
-processes can deserialize them safely.
-
-To add another distributable function:
-
-1. Define a `Function` subclass in `src/functions.py`.
-2. Implement all five contract methods listed above.
-3. Keep its serialized state JSON-compatible.
-4. Register the class in `FUNCTION_CLASSES`.
-5. Add partitioning, evaluation, orchestration, and serialization tests.
-
-### `src/network.py`
-
-Provides the TCP transport. Messages are JSON objects prefixed with a
-four-byte, network-order payload length. The transport rejects non-object
-payloads and messages larger than 16 MiB.
-
-## Project structure
-
-```text
-.
-├── src/                         Active resolution-engine prototype
-│   ├── app.py                   Interactive CLI and demo coordinator
-│   ├── engine.py                Engine subprocess lifecycle and protocol
-│   ├── functions.py             Function contract and Sum implementation
-│   └── network.py               Length-prefixed JSON-over-TCP transport
-├── tests/test_python_only/      Tests for active and earlier prototypes
-├── diagrams/                    Component and sequence diagrams
-├── documentation/               Design notes and future architecture
-├── tools/                       Diagram-generation utilities
-├── task_division_prototype/     Earlier task-division experiment
-├── deprecated/                  Archived C/C++ and Python implementations
-├── reports/                     Historical test reports
-└── agents/                      Repository-specific agent role notes
-└── temp_src/					 Sandbox environment for understanding src/
-```
-
-## Testing
-
-Run the tests for the active function and demo modules with:
+To regenerate the matrix event-sequence diagram from the newest timestamped
+syslog file, run:
 
 ```bash
-python3 -m pytest \
-  tests/test_python_only/test_functions.py \
-  tests/test_python_only/test_demo_system.py
+python3 tools/generate_cost_event_sequences.py
 ```
 
-The integration tests open localhost sockets and create subprocesses, so they
-may fail in restricted or sandboxed environments. At this snapshot, the focused
-suite also exposes an unresolved `Sum.orchestrate()` failure, so the command is
-a development check rather than a passing release gate. The wider test
-directory contains historical chaos tests from an earlier prototype and is not
-yet a single clean test suite for the active implementation.
+Pass `--log logs/NAME.log` to select a particular run. The generator falls back
+to the legacy `logs/syslog.log` if no timestamped run exists. See
+[`tools/cost_event_sequences.md`](tools/cost_event_sequences.md) for how the
+diagram's timings are interpreted.
 
-## Design documents
+## Diagrams
 
-- [`documentation/FUTUREWORKS.md`](documentation/FUTUREWORKS.md) describes the
-  proposed persistent-engine architecture, evaluation API, versioned memory,
-  memoization, partitioning contracts, recovery, and implementation roadmap.
-- [`documentation/GELECEKISLER.md`](documentation/GELECEKISLER.md) is the
-  Turkish version of the future architecture plan.
-- [`diagrams/component_diagram.svg`](diagrams/component_diagram.svg) shows the
-  proposed components and deployment boundaries.
-- [`diagrams/sequence_diagram.svg`](diagrams/sequence_diagram.svg) shows the
-  proposed evaluation sequence.
-- [`documentation/DESCRIPTION.md`](documentation/DESCRIPTION.md) documents the
-  archived C/C++ MPI-style simulator rather than the active Python prototype.
+The first three diagrams explain the intended resolution-engine design and how
+function objects move between processes. They are conceptual: the runnable demo
+uses fixed local workers and does not implement the full Manager/Engine API. The
+last diagram shows events measured from one matrix-demo run.
 
-## Current limitations
+### Components and deployment
 
-- Engines run as local subprocesses; remote hosts are not supported yet.
-- Partitioning and engine placement are manual and fixed to two partitions.
-- Evaluation requests are synchronous from the CLI.
-- Only explicitly registered, JSON-serializable function classes can cross the
-  process boundary.
-- The current transport has no authentication or encryption and is intended
-  only for local experimentation.
-- Automatic scheduling, cancellation propagation, state versioning,
-  memoization, retries, and recovery remain future work.
-- The repository is being reorganized, so some tests, reports, and documents
-  still describe archived prototypes.
+![Component diagram showing the main program, Manager, Engines, and Functions across main and worker computers](diagrams/component_diagram.svg)
+
+The component diagram shows the proposed roles of the main program, Manager,
+Engines, and Functions, and how work and results would cross computer boundaries.
+
+### Execution sequence
+
+![Sequence diagram showing partitioning, dispatch, evaluation, and orchestration](diagrams/sequence_diagram.svg)
+
+The sequence diagram follows a proposed `EXECUTE` call: plan partitions, send
+each one to an Engine, evaluate it, and combine the returned results.
+
+### Function object flow
+
+![Object flow showing distinct main and worker copies of a function partition](diagrams/function_object_flow.svg)
+
+The object-flow diagram tracks which copy of a function is changed by `eval()`
+and which copy returns for orchestration. It illustrates one local and one
+worker-evaluated partition; the current matrix demo evaluates both partitions
+in workers.
+
+### Matrix evaluation events
+
+![Event sequences comparing local matrix evaluation with the two-worker partitioned run](diagrams/cost_event_sequences.svg)
+
+This diagram shows logged request, reply, and worker-evaluation events from one
+run. Its local and partitioned headline durations use different event
+boundaries, so they are not a direct speedup comparison.
+
+## Testing and current limitations
+
+`bash scripts/run.sh` is the end-to-end check for the current demo: it compares
+the local and partitioned results and raises an error if they differ. The files
+under `tests/test_python_only/` still reference removed modules or earlier
+prototypes; they are not a maintained test suite for the current demo.
+
+The demo uses a fixed localhost address and port, three fixed worker IDs, and
+a two-way matrix partition. It has no remote-host support, automatic placement,
+retries, recovery, or authentication. Requests are synchronous, and worker
+state lives only for the process lifetime. The syslog file is written after a
+successful comparison and log collection, so a failed run may produce no file.
+
+The earlier task prototype is now under [`task_prototype/`](task_prototype/),
+while historical implementations are under [`deprecated/`](deprecated/).
 
 ## License
 
