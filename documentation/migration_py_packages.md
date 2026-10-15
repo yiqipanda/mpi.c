@@ -6,15 +6,15 @@ The recommendations below are based on the linked **official package documentati
 
 ## Recommended starting stack
 
-| Package | Proposed use | Replaces or supports | When to add |
-| --- | --- | --- | --- |
-| [grpcio](https://grpc.io/docs/languages/python/basics/), [grpcio-tools](https://grpc.io/docs/languages/python/quickstart/), [protobuf](https://protobuf.dev/reference/python/python-generated/) | Typed coordinator/worker RPCs, generated client/server interfaces, TLS, deadlines, status codes | Most of network.py and message.py | When moving beyond the socket demo |
-| [grpcio-health-checking](https://grpc.github.io/grpc/python/grpc_health_checking.html) | Standard worker readiness reporting | Part of worker availability checks | With gRPC if workers expose an RPC server |
-| [pydantic](https://docs.pydantic.dev/latest/concepts/models/) and [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) | Validate submitted directives and deployment settings | Hand-written input/config checks and hard-coded host/port values | Early |
-| [structlog](https://www.structlog.org/en/stable/standard-library.html) | Structured events with run, call, and worker IDs | Event construction in log.py and formatting in log_buffer.py | Early |
-| [tenacity](https://tenacity.readthedocs.io/en/latest/) | Bounded backoff for startup and selected transient operations | The fixed retry loop in otherNetwork.connect() | Only where gRPC retry is insufficient |
-| [diskcache](https://grantjenks.com/docs/diskcache/tutorial.html) | Optional local, run-scoped data/result cache | Future cache; request_table is currently only retained function state | After cache semantics are defined |
-| [SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) and [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html) | Durable coordinator metadata and schema migrations | Future run/call/worker records, not the worker result cache | Only if state must survive restarts |
+| Package                                                                                                                                                                                      | Proposed use                                                                                    | Replaces or supports                                                  | When to add                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
+| [grpcio](https://grpc.io/docs/languages/python/basics/), [grpcio-tools](https://grpc.io/docs/languages/python/quickstart/), [protobuf](https://protobuf.dev/reference/python/python-generated/) | Typed coordinator/worker RPCs, generated client/server interfaces, TLS, deadlines, status codes | Most of network.py and message.py                                     | When moving beyond the socket demo        |
+| [grpcio-health-checking](https://grpc.github.io/grpc/python/grpc_health_checking.html)                                                                                                        | Standard worker readiness reporting                                                             | Part of worker availability checks                                    | With gRPC if workers expose an RPC server |
+| [pydantic](https://docs.pydantic.dev/latest/concepts/models/) and [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)                                            | Validate submitted directives and deployment settings                                           | Hand-written input/config checks and hard-coded host/port values      | Early                                     |
+| [structlog](https://www.structlog.org/en/stable/standard-library.html)                                                                                                                        | Structured events with run, call, and worker IDs                                                | Event construction in log.py and formatting in log_buffer.py          | Early                                     |
+| [tenacity](https://tenacity.readthedocs.io/en/latest/)                                                                                                                                        | Bounded backoff for startup and selected transient operations                                   | The fixed retry loop in otherNetwork.connect()                        | Only where gRPC retry is insufficient     |
+| [diskcache](https://grantjenks.com/docs/diskcache/tutorial.html)                                                                                                                              | Optional local, run-scoped data/result cache                                                    | Future cache; request_table is currently only retained function state | After cache semantics are defined         |
+| [SQLAlchemy](https://docs.sqlalchemy.org/en/20/orm/session_basics.html) and [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html)                                                  | Durable coordinator metadata and schema migrations                                              | Future run/call/worker records, not the worker result cache           | Only if state must survive restarts       |
 
 This is one coherent route, not an instruction to install everything immediately. In particular, protobuf is the wire schema for the gRPC route; pydantic is for local configuration and submitted program metadata. The two have different jobs. **Before building that route**, compare it with [Ray](https://docs.ray.io/en/latest/ray-core/actors.html), which could provide the entire distributed execution layer. [msgspec](https://msgspec.dev/structs) is a lighter **alternative** to the gRPC/Protocol Buffers route for the existing JSON protocol, not an extra serializer to add on top of it.
 
@@ -24,7 +24,7 @@ Ray is a more consequential package choice than a serializer. Its [remote tasks]
 
 An API sketch based on the documented actor methods shows why this merits a pilot:
 
-~~~python
+```python
 import ray
 
 @ray.remote
@@ -39,9 +39,27 @@ class Engine:
 engine = Engine.remote(registry)
 result_ref = engine.evaluate.remote("matrix_columns_v1", partition)
 result = ray.get(result_ref)
-~~~
+```
 
 This could remove much of the custom socket, message, worker-process, and result-collection code. It would **not** supply the project's partition contracts, safe cache keys, versioned memory, or mutation replay. Ray's [actor fault-tolerance guide](https://docs.ray.io/en/latest/ray-core/fault_tolerance/actors.html) explicitly says an actor restart does not restore application state automatically. It also would make the product depend on Ray's cluster model and deployment. The [Ray security guide](https://docs.ray.io/en/latest/ray-security/index.html) says standard Ray clusters expect trusted code and a controlled network and use cloudpickle for arbitrary Python objects. Evaluate Ray as an **alternative to a custom gRPC execution layer**, not as an automatic companion to it. **Research required: high** for deployment, resource placement, data movement, restart behavior, and security. A small pilot with two machines and a stateful engine would make this decision evidence-based.
+
+### Cache, records, and signals under Ray
+
+Here, **signals** means task completion, cancellation, failure, and worker availability; the product may also need its own commands such as assign, clear data, and eject. Ray reduces the plumbing for the first group, but it does not define the meaning or persistence of the second.
+
+| Concern                        | What Ray documents                                                                                                                                                                                                                                                                                                                                                           | What this application must still specify                                                                                                                                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reusing input data             | [Object refs](https://docs.ray.io/en/latest/ray-core/objects.html) refer to immutable values in per-node object stores. Ray moves values to consumers and frees them through distributed reference counting. Actor fields can retain Python state between calls.                                                                                                              | Which values may be reused; a cache key containing function/code and input versions; which actor owns the value; expiry and clearing at run end. Holding an object ref is reuse during a live cluster, not a durable, version-aware result cache.    |
+| Records on worker machines     | [Actors](https://docs.ray.io/en/latest/ray-core/actors.html) can maintain local state. Ray exposes task, actor, object, and node states through its [State API](https://docs.ray.io/en/latest/ray-observability/user-guides/cli-sdk.html).                                                                                                                                     | Whether an assignment, mutation, call outcome, and retained-data location are written to a local file, a coordinator database, or shared storage. Ray's State API is for monitoring cluster entities, not the application's ordered mutation ledger. |
+| Restarts and lost data         | Ray can restart an actor, and some task-created objects can be reconstructed. Its [actor recovery guide](https://docs.ray.io/en/latest/ray-core/fault_tolerance/actors.html) requires application checkpoint/restore; its [object recovery guide](https://docs.ray.io/en/latest/ray-core/fault_tolerance/objects.html) lists limitations, including values created by ray.put. | A checkpoint format, storage location accessible after node loss, replay order, and policy when recovery is impossible. A record kept only on the failed machine cannot guarantee recovery on another machine.                                       |
+| Completion and failure signals | [ray.wait](https://docs.ray.io/en/latest/ray-core/tasks.html#waiting-for-partial-results) reports ready results; ray.get returns values or raises errors. [ray.cancel](https://docs.ray.io/en/latest/ray-core/api/doc/ray.cancel.html) cancels tasks and can propagate to child tasks.                                                                                         | Mapping these outcomes to stable call IDs, structured domain errors, deadlines, cleanup, and whether a partly completed evaluation may be retried. Actor cancellation may require cooperative checks in the running method.                          |
+| Worker removal                 | [ray.kill](https://docs.ray.io/en/latest/ray-core/actors/terminating-actors.html) ends an actor. Ray tracks node and actor states.                                                                                                                                                                                                                                            | Graceful drain, revocation of assignments, clearing sensitive data, and cluster node departure. Killing an actor is not equivalent to ejecting its computer; Ray says ray.kill does not run normal shutdown hooks.                                   |
+
+In particular, Ray's [object spilling](https://docs.ray.io/en/latest/ray-core/internals/object-spilling.html) writes objects to disk under memory pressure, but spilled files follow Ray's object lifetime and can be deleted when references disappear. Treating spill files as the application's saved records or persistent cache would be an incorrect inference. Ray's [actor fault-tolerance documentation](https://docs.ray.io/en/latest/ray-core/fault_tolerance/actors.html) also warns that an actor method may have executed even when the caller receives an availability error. A state-changing method therefore still needs a stable mutation ID and application-level deduplication/recovery policy.
+
+A minimal **application-level** contract to test is: `worker_ready` means the actor has loaded its assigned recipe and data; `partition_finished` ties a Ray result ref to a run, call, and partition ID; `state_committed` records the mutation ID and durable checkpoint version; `drain_requested` stops new assignments and waits for active calls before removal; and `cache_invalidated` drops entries affected by a code or data version change. These names and meanings are proposed product decisions, not built-in Ray signals. Ray's task refs and actor methods can carry them, while the application decides which events must be persisted and acknowledged before work continues.
+
+The Ray pilot should check one repeated call that hits a versioned cache, a state update that must not be applied twice, actor restart, loss of a whole worker node, cancellation during evaluation, and graceful removal. Record which behavior Ray supplies and what application code or storage each scenario needs. This decides whether Ray *reduces enough system code* to justify adopting its cluster model.
 
 ## 1. Service communication: grpcio, grpcio-tools, protobuf
 
@@ -49,7 +67,7 @@ This could remove much of the custom socket, message, worker-process, and result
 
 An **illustrative** contract for a future worker could be:
 
-~~~proto
+```proto
 syntax = "proto3";
 
 service Worker {
@@ -70,7 +88,7 @@ message EvaluateReply {
 }
 message ClearRunRequest { string run_id = 1; }
 message ClearRunReply {}
-~~~
+```
 
 The bytes fields are deliberately opaque here. A real handoff must specify the input and result schema, size limits, and how large datasets are transferred. Protocol Buffers does **not** serialize arbitrary Python function objects or provision code on workers. Prefer a versioned recipe/function identifier on the wire and a separate, explicit mechanism for installing or distributing trusted code.
 
@@ -88,7 +106,7 @@ The [Python health service API](https://grpc.github.io/grpc/python/grpc_health_c
 
 HOST, PORT, and worker IDs are currently literals in [main_process.py](../src/main_process.py) and [other_process.py](../src/other_process.py). [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) documents typed BaseSettings models loaded from environment variables or secrets files. [Pydantic models](https://docs.pydantic.dev/latest/concepts/models/) validate structured data. These are suitable for deployment configuration and for metadata extracted from supported decorators in a submitted Python file:
 
-~~~python
+```python
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -100,13 +118,13 @@ class WorkerSettings(BaseSettings):
 
 # Reads MPI_COORDINATOR_HOST, MPI_COORDINATOR_PORT, and MPI_WORKER_ID.
 settings = WorkerSettings()
-~~~
+```
 
 The snippet follows the documented BaseSettings/SettingsConfigDict and Field APIs. A separate model could validate a directive such as recipe_id, recipe_version, and cache_policy after the application extracts it. Pydantic does not parse Python source, determine whether partitioning is mathematically valid, or make executing submitted Python safe. Use an explicit allowlist of recipes and verify their contract. **Research required: low to medium** for settings precedence, strict validation, and secrets handling.
 
 ## 3. Event logging: structlog
 
-The current Log and LogBuffer types sort events, transfer log batches, acknowledge them, and render RFC 5424 text. [structlog's standard-library integration](https://www.structlog.org/en/stable/standard-library.html) and [API documentation](https://www.structlog.org/en/stable/api.html) show structured fields, JSON rendering, and context-local values. A worker could emit logger.info("partition_finished", run_id=..., call_id=..., worker_id=..., elapsed_s=...) instead of building event strings manually. This makes records easier to filter and correlate across computers.
+The current Log and LogBuffer types sort events, transfer log batches, acknowledge them, and render RFC 5424 text. [structlog&#39;s standard-library integration](https://www.structlog.org/en/stable/standard-library.html) and [API documentation](https://www.structlog.org/en/stable/api.html) show structured fields, JSON rendering, and context-local values. A worker could emit logger.info("partition_finished", run_id=..., call_id=..., worker_id=..., elapsed_s=...) instead of building event strings manually. This makes records easier to filter and correlate across computers.
 
 Keep a distinction between **operational logs** and the **ordered mutation record** proposed in FUTUREWORKS.md. structlog formats/emits events; it does not guarantee central delivery, acknowledgement, or replay. If the product needs one combined log, choose a collector or explicit forwarding protocol. If it needs recovery, persist state changes in a transactional store. **Research required: low** for local JSON logs; **medium** if log shipping or audit guarantees are required.
 
@@ -118,13 +136,13 @@ Do **not** add Tenacity around every Evaluate call. Use gRPC's documented retry 
 
 ## 5. Run-scoped worker cache: diskcache
 
-[DiskCache's tutorial](https://grantjenks.com/docs/diskcache/tutorial.html) documents a filesystem/SQLite-backed Cache with atomic operations, cross-process access, expiration, size limits, and eviction policies. This fits the proposed persistent worker that may keep input data and deterministic results for one program run. The application still has to build the key from the function identity and code version, normalized inputs, and concrete versions of retained data, as specified in [FUTUREWORKS.md](FUTUREWORKS.md). Use a directory per run and clear it when the run ends or the worker is reassigned. DiskCache is local to a machine; it is not the coordinator's record of which worker owns data.
+[DiskCache&#39;s tutorial](https://grantjenks.com/docs/diskcache/tutorial.html) documents a filesystem/SQLite-backed Cache with atomic operations, cross-process access, expiration, size limits, and eviction policies. This fits the proposed persistent worker that may keep input data and deterministic results for one program run. The application still has to build the key from the function identity and code version, normalized inputs, and concrete versions of retained data, as specified in [FUTUREWORKS.md](FUTUREWORKS.md). Use a directory per run and clear it when the run ends or the worker is reassigned. DiskCache is local to a machine; it is not the coordinator's record of which worker owns data.
 
 **Security qualification.** DiskCache's [serialization documentation](https://grantjenks.com/docs/diskcache/tutorial.html#disk) says strings and bytes are native, while other types may use Pickle. Python [warns against unpickling untrusted data](https://docs.python.org/3/library/pickle.html). Store string/hash keys and already validated bytes values, or define a safe custom serializer. Protect the cache directory from tampering. Check support on the selected Python version before adoption; the referenced DiskCache documentation is older than the current environment. **Research required: high** for cache invalidation, eviction, serialization, and restart behavior.
 
 ## 6. Durable metadata, only if required: SQLAlchemy and Alembic
 
-The demo has no database. If the product must preserve worker registrations, run history, call IDs, versioned memory, or the ordered update record across coordinator restarts, use a relational database rather than treating logs or worker caches as the source of truth. [SQLAlchemy's session guide](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block) documents a transaction context that commits on success and rolls back on error; that fits recording a call outcome and its state update atomically. [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html) documents versioned schema migration scripts for SQLAlchemy applications.
+The demo has no database. If the product must preserve worker registrations, run history, call IDs, versioned memory, or the ordered update record across coordinator restarts, use a relational database rather than treating logs or worker caches as the source of truth. [SQLAlchemy&#39;s session guide](https://docs.sqlalchemy.org/en/20/orm/session_basics.html#framing-out-a-begin-commit-rollback-block) documents a transaction context that commits on success and rolls back on error; that fits recording a call outcome and its state update atomically. [Alembic](https://alembic.sqlalchemy.org/en/latest/tutorial.html) documents versioned schema migration scripts for SQLAlchemy applications.
 
 One coordinator with local persistence could begin with SQLite; a multi-coordinator design would need a separate database decision. No external database service is required by the current demo, and SQLAlchemy is not necessary merely to hold a small in-memory recipe registry. The executable partition and combination implementations should remain versioned Python code; the database may store identifiers, versions, and metadata. **Research required: high** for the persistence boundary, schema, transaction isolation, recovery, and deployment of migrations.
 
@@ -134,9 +152,9 @@ One coordinator with local persistence could begin with SQLite; a multi-coordina
 
 ## 8. Development checks: pip-audit and Hypothesis
 
-| Package | Documented capability and project use | Limit |
-| --- | --- | --- |
-| [pip-audit](https://github.com/pypa/pip-audit#readme) | Audit the eventual environment, requirements, or project lockfile for known dependency vulnerabilities in CI or release preparation. | It reports **known dependency vulnerabilities**; its own security model says it is not static analysis or a guarantee that code is safe. It does not sandbox submitted Python. |
+| Package                                                                             | Documented capability and project use                                                                                                                                                             | Limit                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [pip-audit](https://github.com/pypa/pip-audit#readme)                                | Audit the eventual environment, requirements, or project lockfile for known dependency vulnerabilities in CI or release preparation.                                                              | It reports **known dependency vulnerabilities**; its own security model says it is not static analysis or a guarantee that code is safe. It does not sandbox submitted Python.          |
 | [Hypothesis](https://hypothesis.readthedocs.io/en/latest/tutorial/introduction.html) | Generate many legal inputs with @given to check that orchestrate(partition(x)) equals direct evaluation, including uneven partitions and empty legal ranges. Also test serialization round trips. | Property tests need a correct oracle and fast functions. The current demo deliberately sleeps, so remove artificial delay in test fixtures rather than running thousands of slow evaluations. |
 
 These are development dependencies, not coordinator/worker runtime services. **Research required: low** for basic use; designing meaningful partition invariants is application work.
