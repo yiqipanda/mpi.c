@@ -1,0 +1,68 @@
+<14>1 2026-10-13T09:58:59.531473Z - mpi.c - - - ﻿[worker 3] process started
+<14>1 2026-10-13T09:58:59.531539Z - mpi.c - - - ﻿[worker 1] process started
+<14>1 2026-10-13T09:58:59.531635Z - mpi.c - - - ﻿[worker 2] process started
+<14>1 2026-10-13T09:58:59.542680Z - mpi.c - - - ﻿[main] process started
+<14>1 2026-10-13T09:58:59.542727Z - mpi.c - - - ﻿[main] listening for worker processes
+<14>1 2026-10-13T09:58:59.637479Z - mpi.c - - - ﻿[worker 1] connected to main process
+<14>1 2026-10-13T09:58:59.637543Z - mpi.c - - - ﻿[worker 1] message sent source=worker 1 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.637619Z - mpi.c - - - ﻿[main] message received source=worker 1 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.637662Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 1 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.637665Z - mpi.c - - - ﻿[main] worker 1 registered
+<14>1 2026-10-13T09:58:59.637738Z - mpi.c - - - ﻿[worker 1] message received source=main dest=worker 1 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.637741Z - mpi.c - - - ﻿[worker 1] registered with main process
+<14>1 2026-10-13T09:58:59.640376Z - mpi.c - - - ﻿[worker 3] connected to main process
+<14>1 2026-10-13T09:58:59.640395Z - mpi.c - - - ﻿[worker 2] connected to main process
+<14>1 2026-10-13T09:58:59.640450Z - mpi.c - - - ﻿[worker 3] message sent source=worker 3 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.640468Z - mpi.c - - - ﻿[worker 2] message sent source=worker 2 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.640503Z - mpi.c - - - ﻿[main] message received source=worker 3 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.640536Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 3 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.640539Z - mpi.c - - - ﻿[main] worker 3 registered
+<14>1 2026-10-13T09:58:59.640582Z - mpi.c - - - ﻿[main] message received source=worker 2 dest=main request_type=register operation=noop request_id=-1
+<14>1 2026-10-13T09:58:59.640603Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 2 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.640606Z - mpi.c - - - ﻿[main] worker 2 registered
+<14>1 2026-10-13T09:58:59.640607Z - mpi.c - - - ﻿[worker 3] message received source=main dest=worker 3 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.640610Z - mpi.c - - - ﻿[worker 3] registered with main process
+<14>1 2026-10-13T09:58:59.640675Z - mpi.c - - - ﻿[worker 2] message received source=main dest=worker 2 request_type=OK operation=register request_id=-1
+<14>1 2026-10-13T09:58:59.640680Z - mpi.c - - - ﻿[worker 2] registered with main process
+<14>1 2026-10-13T09:59:22.883347Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 3 request_type=ackLogs operation=flush request_id=-1
+<14>1 2026-10-13T09:59:22.884519Z - mpi.c - - - ﻿[worker 3] message received source=main dest=worker 3 request_type=ackLogs operation=flush request_id=-1
+<14>1 2026-10-13T09:59:22.884689Z - mpi.c - - - ﻿[worker 3] request: ackLogs by id: -1 received by -1 to handle operation flush; reply=OK; dispatch_elapsed=0.000079s
+<14>1 2026-10-13T09:59:22.885562Z - mpi.c - - - ﻿[worker 3] message sent source=worker 3 dest=main request_type=OK operation=flush request_id=-1
+<14>1 2026-10-13T09:59:22.885943Z - mpi.c - - - ﻿[main] message received source=worker 3 dest=main request_type=OK operation=flush request_id=-1
+<14>1 2026-10-13T09:59:22.886648Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 1 request_type=createFunction operation=create request_id=0
+<14>1 2026-10-13T09:59:22.888105Z - mpi.c - - - ﻿[worker 1] message received source=main dest=worker 1 request_type=createFunction operation=create request_id=0
+<14>1 2026-10-13T09:59:22.888287Z - mpi.c - - - ﻿[worker 1] request: createFunction by id: 0 received by -1 to handle operation create; reply=OK; dispatch_elapsed=0.000098s
+<14>1 2026-10-13T09:59:22.888556Z - mpi.c - - - ﻿[worker 1] message sent source=worker 1 dest=main request_type=OK operation=noop request_id=0
+<14>1 2026-10-13T09:59:22.888633Z - mpi.c - - - ﻿[main] message received source=worker 1 dest=main request_type=OK operation=noop request_id=0
+<14>1 2026-10-13T09:59:22.888761Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 2 request_type=createFunction operation=create request_id=1
+<14>1 2026-10-13T09:59:22.890061Z - mpi.c - - - ﻿[worker 2] message received source=main dest=worker 2 request_type=createFunction operation=create request_id=1
+<14>1 2026-10-13T09:59:22.890261Z - mpi.c - - - ﻿[worker 2] request: createFunction by id: 1 received by -1 to handle operation create; reply=OK; dispatch_elapsed=0.000110s
+<14>1 2026-10-13T09:59:22.890538Z - mpi.c - - - ﻿[worker 2] message sent source=worker 2 dest=main request_type=OK operation=noop request_id=1
+<14>1 2026-10-13T09:59:22.890624Z - mpi.c - - - ﻿[main] message received source=worker 2 dest=main request_type=OK operation=noop request_id=1
+<14>1 2026-10-13T09:59:22.890679Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 1 request_type=getFunctionResult operation=return request_id=0
+<14>1 2026-10-13T09:59:33.772111Z - mpi.c - - - ﻿[worker 1] request: createFunction by id: 0 received by -1 to handle operation create; function_execution=OK; elapsed=10.883206s
+<14>1 2026-10-13T09:59:33.772314Z - mpi.c - - - ﻿[worker 1] message received source=main dest=worker 1 request_type=getFunctionResult operation=return request_id=0
+<14>1 2026-10-13T09:59:33.772353Z - mpi.c - - - ﻿[worker 1] request: getFunctionResult by id: 0 received by -1 to handle operation return; reply=OK; dispatch_elapsed=0.000028s
+<14>1 2026-10-13T09:59:33.772706Z - mpi.c - - - ﻿[worker 1] message sent source=worker 1 dest=main request_type=OK operation=noop request_id=0
+<14>1 2026-10-13T09:59:33.773076Z - mpi.c - - - ﻿[main] message received source=worker 1 dest=main request_type=OK operation=noop request_id=0
+<14>1 2026-10-13T09:59:33.773158Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 2 request_type=getFunctionResult operation=return request_id=1
+<14>1 2026-10-13T09:59:35.322140Z - mpi.c - - - ﻿[worker 2] request: createFunction by id: 1 received by -1 to handle operation create; function_execution=OK; elapsed=12.431194s
+<14>1 2026-10-13T09:59:35.322409Z - mpi.c - - - ﻿[worker 2] message received source=main dest=worker 2 request_type=getFunctionResult operation=return request_id=1
+<14>1 2026-10-13T09:59:35.322484Z - mpi.c - - - ﻿[worker 2] request: getFunctionResult by id: 1 received by -1 to handle operation return; reply=OK; dispatch_elapsed=0.000055s
+<14>1 2026-10-13T09:59:35.323205Z - mpi.c - - - ﻿[worker 2] message sent source=worker 2 dest=main request_type=OK operation=noop request_id=1
+<14>1 2026-10-13T09:59:35.323534Z - mpi.c - - - ﻿[main] message received source=worker 2 dest=main request_type=OK operation=noop request_id=1
+<14>1 2026-10-13T09:59:35.324379Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 1 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.324543Z - mpi.c - - - ﻿[worker 1] message received source=main dest=worker 1 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.325265Z - mpi.c - - - ﻿[main] message received source=worker 1 dest=main request_type=OK operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.325413Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 2 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.325492Z - mpi.c - - - ﻿[worker 2] message received source=main dest=worker 2 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.325841Z - mpi.c - - - ﻿[main] message received source=worker 2 dest=main request_type=OK operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.325903Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 3 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.326043Z - mpi.c - - - ﻿[worker 3] message received source=main dest=worker 3 request_type=getLogs operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.326712Z - mpi.c - - - ﻿[main] message received source=worker 3 dest=main request_type=OK operation=return request_id=-1
+<14>1 2026-10-13T09:59:35.326775Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 1 request_type=ackLogs operation=flush request_id=-1
+<14>1 2026-10-13T09:59:35.326958Z - mpi.c - - - ﻿[main] message received source=worker 1 dest=main request_type=OK operation=flush request_id=-1
+<14>1 2026-10-13T09:59:35.326988Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 2 request_type=ackLogs operation=flush request_id=-1
+<14>1 2026-10-13T09:59:35.327141Z - mpi.c - - - ﻿[main] message received source=worker 2 dest=main request_type=OK operation=flush request_id=-1
+<14>1 2026-10-13T09:59:35.327167Z - mpi.c - - - ﻿[main] message sent source=main dest=worker 3 request_type=ackLogs operation=flush request_id=-1
+<14>1 2026-10-13T09:59:35.327319Z - mpi.c - - - ﻿[main] message received source=worker 3 dest=main request_type=OK operation=flush request_id=-1
